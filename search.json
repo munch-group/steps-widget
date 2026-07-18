@@ -1,68 +1,5 @@
 [
   {
-    "objectID": "pages/example.html",
-    "href": "pages/example.html",
-    "title": "Examples",
-    "section": "",
-    "text": "A few more %%steps examples, showing method calls, indexing, and short-circuit and/or logic.\nimport steps_widget",
-    "crumbs": [
-      "Examples",
-      "Examples"
-    ]
-  },
-  {
-    "objectID": "pages/example.html#method-calls-and-indexing",
-    "href": "pages/example.html#method-calls-and-indexing",
-    "title": "Examples",
-    "section": "Method calls and indexing",
-    "text": "Method calls and indexing\n\n%%steps\ns = 'Hej {}'\nl = [1, 2, 3]\ngreeting = s.format('Kasper').upper()[0:3]  # PRINT STEPS\ntotal = l[0] + l[1] + l[2]  # PRINT STEPS",
-    "crumbs": [
-      "Examples",
-      "Examples"
-    ]
-  },
-  {
-    "objectID": "pages/example.html#short-circuit-and-or",
-    "href": "pages/example.html#short-circuit-and-or",
-    "title": "Examples",
-    "section": "Short-circuit and / or",
-    "text": "Short-circuit and / or\nEach Logic step shows which side of and/or Python actually needed to look at.\n\n%%steps\nx = 0\ny = 3\nresult = x and y or 7  # PRINT STEPS",
-    "crumbs": [
-      "Examples",
-      "Examples"
-    ]
-  },
-  {
-    "objectID": "api/index.html",
-    "href": "api/index.html",
-    "title": "Function reference",
-    "section": "",
-    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements.\n\n\nregister_steps_magic\nRegister the %%steps cell magic.\n\n\n\n\n\n\nThe print-steps console script.\n\n\n\nrun_student_file\nTrace every # PRINT STEPS-tagged line of a student script to stderr.\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis page is a placeholder. Run pixi run api (quartodoc) to regenerate it and the per-symbol pages from the live docstrings.",
-    "crumbs": [
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "api/index.html#widget",
-    "href": "api/index.html#widget",
-    "title": "Function reference",
-    "section": "",
-    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements.\n\n\nregister_steps_magic\nRegister the %%steps cell magic.",
-    "crumbs": [
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "api/index.html#command-line",
-    "href": "api/index.html#command-line",
-    "title": "Function reference",
-    "section": "",
-    "text": "The print-steps console script.\n\n\n\nrun_student_file\nTrace every # PRINT STEPS-tagged line of a student script to stderr.\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis page is a placeholder. Run pixi run api (quartodoc) to regenerate it and the per-symbol pages from the live docstrings.",
-    "crumbs": [
-      "Function reference"
-    ]
-  },
-  {
     "objectID": "pages/overview.html",
     "href": "pages/overview.html",
     "title": "Overview",
@@ -100,6 +37,69 @@
     "text": "The print-steps command line tool\nOutside of a notebook, print-steps traces every # PRINT STEPS-tagged line of a student script and prints the trace to stderr:\nprint-steps student_script.py\nIt first runs the script unmodified to confirm it is error-free, then re-runs an instrumented copy so line numbers and execution order match the original file.",
     "crumbs": [
       "Overview"
+    ]
+  },
+  {
+    "objectID": "api/index.html",
+    "href": "api/index.html",
+    "title": "Function reference",
+    "section": "",
+    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements.\n\n\nregister_steps_magic\nRegister the %%steps cell magic.\n\n\n\n\n\n\nThe print-steps console script.\n\n\n\nrun_student_file\nTrace every # PRINT STEPS-tagged line of a student script to stderr.\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis page is a placeholder. Run pixi run api (quartodoc) to regenerate it and the per-symbol pages from the live docstrings.",
+    "crumbs": [
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "api/index.html#widget",
+    "href": "api/index.html#widget",
+    "title": "Function reference",
+    "section": "",
+    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements.\n\n\nregister_steps_magic\nRegister the %%steps cell magic.",
+    "crumbs": [
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "api/index.html#command-line",
+    "href": "api/index.html#command-line",
+    "title": "Function reference",
+    "section": "",
+    "text": "The print-steps console script.\n\n\n\nrun_student_file\nTrace every # PRINT STEPS-tagged line of a student script to stderr.\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis page is a placeholder. Run pixi run api (quartodoc) to regenerate it and the per-symbol pages from the live docstrings.",
+    "crumbs": [
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "pages/example.html",
+    "href": "pages/example.html",
+    "title": "Examples",
+    "section": "",
+    "text": "A few more %%steps examples, showing method calls, indexing, and short-circuit and/or logic.\nimport steps_widget",
+    "crumbs": [
+      "Examples",
+      "Examples"
+    ]
+  },
+  {
+    "objectID": "pages/example.html#method-calls-and-indexing",
+    "href": "pages/example.html#method-calls-and-indexing",
+    "title": "Examples",
+    "section": "Method calls and indexing",
+    "text": "Method calls and indexing\n\n%%steps\ns = 'Hej {}'\nl = [1, 2, 3]\ngreeting = s.format('Kasper').upper()[0:3]  # PRINT STEPS\ntotal = l[0] + l[1] + l[2]  # PRINT STEPS",
+    "crumbs": [
+      "Examples",
+      "Examples"
+    ]
+  },
+  {
+    "objectID": "pages/example.html#short-circuit-and-or",
+    "href": "pages/example.html#short-circuit-and-or",
+    "title": "Examples",
+    "section": "Short-circuit and / or",
+    "text": "Short-circuit and / or\nEach Logic step shows which side of and/or Python actually needed to look at.\n\n%%steps\nx = 0\ny = 3\nresult = x and y or 7  # PRINT STEPS",
+    "crumbs": [
+      "Examples",
+      "Examples"
     ]
   }
 ]
