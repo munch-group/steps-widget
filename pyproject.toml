@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "steps-widget"
-version = "0.1.18"
+version = "0.1.19"
 description = "Jupyter widget and CLI that trace Python expression evaluation step by step (the %%steps cell magic and the print-steps command)"
 authors = [
     {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"}
@@ -45,8 +45,15 @@ platforms = ["osx-arm64",  "linux-64", "win-64"]
 python = ">=3.9,<3.11"
 pytest = "*"
 jupyter = "*"
-quarto = "*"
-quartodoc = "*"
+quarto = ">=1.9.38,<2"
+quartodoc = ">=0.11.1,<0.12"
+# quartodoc 0.11.1's conda-forge package declares an unbounded "griffe>=0.33"
+# runtime dependency, but hardcodes a numpy-docstring parser option
+# ("allow_section_blank_line") that griffe 2.x removed from parse_numpy()'s
+# signature -- an upstream packaging gap (missing "<2" cap), not a
+# steps-widget bug. Pin griffe below 2 here until quartodoc/conda-forge fixes
+# their own bound.
+griffe = "<2"
 nbconvert = "*"
 pip = ">=25.2,<26"
 nodejs = ">=20,<23"
