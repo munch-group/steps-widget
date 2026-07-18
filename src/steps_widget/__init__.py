@@ -1,2 +1,3 @@
+from .widget import StepsWidget, register_steps_magic
 
-from .modulename import functionname
+__all__ = ["StepsWidget", "register_steps_magic"]

@@ -3,10 +3,11 @@ website:
   - contents:
     - api/index.qmd
     - contents:
-      - api/functionname.qmd
-      section: Some section
+      - api/StepsWidget.qmd
+      - api/register_steps_magic.qmd
+      section: Widget
     - contents:
-      - api/scriptname.qmd
-      section: Some other section
+      - api/run_student_file.qmd
+      section: Command line
     id: api
   - id: dummy-sidebar

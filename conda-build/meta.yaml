@@ -11,18 +11,20 @@ build:
   number: 0
   script: {{ PYTHON }} -m pip install . -vv
   python_version_independent: true
-  # entry_points:
-  #  - steps-widget = steps_widget:steps_widget
+  # entry_points intentionally omitted: `pip install .` above already installs
+  # the print-steps console script from pyproject.toml's [project.scripts],
+  # declaring it again here would clobber that same file with a duplicate.
 
 requirements:
   host:
-    - python
+    - python {{ pyproject.get("project").get("requires-python") }}
     - pip
-    - setuptools>=65.0    
+    - setuptools>=65.0
   run:  # your library dependencies
+    - python {{ pyproject.get("project").get("requires-python") }}
     {% for dep in pyproject.get("project").get("dependencies") %}
     - {{ dep.lower() }}
-    {% endfor %}  
+    {% endfor %}
 
 channels:  # channels for your library dependencies
   - conda-forge

@@ -1,6 +1,0 @@
-# scriptname { #steps_widget.modulename.scriptname }
-
-```python
-steps_widget.modulename.scriptname()
-```
-

@@ -1,213 +1,166 @@
-# Project Configuration for Claude
+# CLAUDE.md
 
-This file contains preferences and guidelines for working in this project.
+Project context for `steps-widget` -- a Jupyter widget + CLI that trace Python
+expression evaluation step by step (substitution, then reduction), built on
+[anywidget](https://anywidget.dev).
 
-## MCP Server Usage Guidelines
+## What this is
 
-This project has several MCP (Model Context Protocol) servers available. Use them according to these guidelines:
+`steps-widget` is the new home for the `%%steps` cell magic and `print-steps`
+console script that used to live in the `bp-help` teaching-tool repo (a course
+package for an introductory Python programming class). The code was ported over
+close to verbatim -- the stepper engine (`steps.py`) and the `# PRINT STEPS` tag
+convention (`print_steps.py`) are unchanged; only import paths, entry points, and
+packaging were adapted to this repo's `munch-group` template layout. `bp-help`
+also shipped a `myiagi` TUI trainer (`textual`-based) that was **not** ported --
+this repo covers only the notebook widget and the `print-steps` CLI.
 
-**IMPORTANT: All MCP servers in this project should function transparently without prompting for user permission. Use them freely and directly when needed.**
+The repo was scaffolded from the `munch-group` Python-library template (pixi
+environment, quartodoc docs, conda/PyPI release automation) -- the same template
+`turtle-widget` and `codelens-widget` use.
 
-The following servers are configured to work without permission prompts:
-- `paper-search`: Scientific literature searches
-- `string-db`: Protein interaction analysis
-- `ensembl-db`: Genomic data queries
-- `desktop-commander`: System operations and development tasks
+## Package layout
 
-### Scientific Literature & Research
+The package is `steps_widget` under `src/`:
 
-#### paper-search MCP Server
+- `src/steps_widget/steps.py` -- the stepper engine. `_steps(expr)` disassembles a
+  Python expression string with `dis`, walks the CPython bytecode instructions one
+  at a time through `_inst_map` (a dispatch table keyed by opcode name, e.g.
+  `BINARY_ADD`, `CALL_FUNCTION`, `LOAD_ATTR`), and reconstructs the expression as a
+  string after each operation -- producing a list of intermediate "steps" that
+  mirror Python's actual evaluation order (substitution of variable/attribute/call
+  loads, then reduction of each binary/unary op, with `and`/`or`/comparison chains
+  surfaced as separate "Logic" steps to show short-circuiting). Pass
+  `_with_labels=True` to get `(label, text)` pairs instead of bare strings --
+  `label` is `"As written"` for the first entry, then whichever of
+  `"Substitution"`/`"Reduction"`/`"Logic"` produced that step.
+- `src/steps_widget/print_steps.py` -- `run_student_file()` (the `print-steps`
+  entry point) takes a student `.py` file as `argv[1]`: first runs it unmodified
+  to confirm it's error-free, then writes a shadow copy (`._<filename>`) with the
+  entirety of `steps.py`'s source `exec()`'d (escaped onto one line via
+  `_STEPS_EXEC_ONELINER`, so the shadow file's line numbers stay in sync with the
+  original) at the top, and every line containing a `# PRINT STEPS`-style comment
+  rewritten to call `_steps(expr, _print_steps=True)` before executing that line,
+  printing each step to stderr. Runs the shadow file as a subprocess (via
+  `sys.executable`, not a hardcoded `python` + `shell=True`, so it also works on
+  Windows), then deletes it. The tag convention itself -- the recognized comment
+  spellings (`_COMMENT_TAGS`) and the per-line detection (`_find_tagged_statement`,
+  returning the indent and bare statement preceding the tag) -- lives here so
+  `widget.py` can reuse the exact same tagging logic rather than re-implementing it.
+- `src/steps_widget/widget.py` -- the `%%steps` cell magic and `StepsWidget`
+  (an `anywidget.AnyWidget`). `_instrument_cell()` reuses `print_steps.py`'s
+  `_find_tagged_statement`/`_STEPS_EXEC_ONELINER` to rewrite tagged statements so
+  each one appends its `_steps(expr, _with_labels=True)` result to a collector list
+  before running -- same tag convention, same one-physical-line injection trick as
+  the CLI tool. Execution goes through `ip.run_cell()` (not a bare `exec()`) so the
+  cell behaves like any other notebook cell -- exceptions display inline,
+  assignments persist into the notebook's real `ip.user_ns` -- with the collector
+  list popped back out afterward. Passing an explicit `namespace=` (instead of
+  `None`) skips `ip.run_cell()` and `exec()`s into that dict directly, which is how
+  the widget is tested headlessly (see Testing below). `StepsWidget` renders one
+  card per tagged statement; `register_steps_magic()` runs at import time
+  (wrapped in `try/except` so plain-Python imports don't fail outside IPython).
+- `src/steps_widget/__init__.py` -- re-exports `StepsWidget`/`register_steps_magic`
+  from `widget.py` (mirrors `turtle_widget`'s `from .widget import Turtle`).
+  Importing `steps_widget` therefore both exposes the public API and registers the
+  cell magic as a side effect.
+- `test/` -- headless pytest suite (`test_steps.py`, `test_print_steps.py`,
+  `test_widget.py`) + `conftest.py` that puts `src/` on `sys.path`.
+- `docs/` -- Quarto + quartodoc site (`docs/pages/*.ipynb` prose, `docs/api/*.qmd`
+  API ref -- the checked-in `.qmd` files are placeholders; run `pixi run api` to
+  regenerate them from the live docstrings).
+- `pyproject.toml` -- packaging metadata **and** the pixi workspace (deps + task
+  runner).
+- `conda-build/`, `.github/workflows/` -- conda/PyPI release on tag push, for
+  macOS, Linux, and Windows.
+- `scripts/` -- version-bump / docs-build / release helpers invoked by pixi tasks.
 
-**IMPORTANT: Always use `paper-search` MCP for scientific literature searches.**
+## Critical constraint: Python 3.9/3.10 only
 
-**Use paper-search for searching and downloading academic papers from multiple scientific databases.**
+`steps.py`'s dispatch table (`_inst_map`) is keyed by CPython 3.9/3.10 bytecode
+opcode names (`BINARY_ADD`, `CALL_FUNCTION`, `LOAD_METHOD`/`CALL_METHOD`, ...).
+Python 3.11 restructured many of these (`BINARY_ADD` and friends collapsed into
+`BINARY_OP`; `CALL_FUNCTION`/`CALL_METHOD` replaced by `PRECALL`/`CALL`), so this
+code cannot work unmodified on 3.11+. This is enforced two ways:
 
-Supported databases:
-- **arXiv**: Preprints in physics, mathematics, computer science
-- **PubMed**: Biomedical and life sciences literature
-- **bioRxiv**: Biology preprints
-- **medRxiv**: Medical preprints
-- **Google Scholar**: Broad academic search
-- **IACR ePrint**: Cryptography research
-- **Semantic Scholar**: AI-powered academic search
+- `pyproject.toml` pins `requires-python = ">=3.9,<3.11"`, so `pip`/`conda` refuse
+  to install the package on a newer interpreter.
+- `_steps()` itself raises a `RuntimeError` with a clear message if
+  `sys.version_info >= (3, 11)`, as a safety net for anyone who installs anyway
+  (e.g. `pip install --ignore-requires-python`) -- without it the failure mode is a
+  confusing `KeyError` on the missing opcode name.
 
-Available functions:
-- `search_arxiv()`: Search papers on arXiv
-- `download_arxiv()`: Download PDFs from arXiv
-- Similar search/download functions for other platforms
+Both the conda recipe (`conda-build/meta.yaml`) and the pixi workspace
+(`[tool.pixi.dependencies]` in `pyproject.toml`) mirror this cap. **Do not** widen
+`requires-python` without first reworking `steps.py`'s dispatch table for the
+newer opcode set (see `bp-help`'s `CLAUDE.md` for the same note against its
+`myiagi` TUI, which has the identical constraint and was never fixed).
 
-Features:
-- Returns papers in standardized format
-- Asynchronous requests for efficiency
-- Supports API keys for enhanced access (e.g., Semantic Scholar)
+## The `# PRINT STEPS` tag convention
 
-**Use paper-search when:**
-- Finding scientific papers, articles, and publications
-- Searching by author names, keywords, or topics
-- Academic research queries
-- Citation lookups
-- Literature reviews
-- Downloading research papers
+Any of these spellings, trailing a statement, marks it for step tracing (see
+`_COMMENT_TAGS` in `print_steps.py`): `# PRINT STEPS`, `#PRINT STEPS`,
+`# PRINTSTEPS`, `#PRINTSTEPS`, `# PRINT-STEPS`, `#PRINT-STEPS`, and the lowercase
+equivalents. A tag inside a comment-only line (nothing but `#...` before the tag)
+is ignored, not traced.
 
-**Never use web search or other tools for scientific literature - always use paper-search.**
+## Environment & commands
 
-### Bioinformatics & Genomics
+Pixi-managed (config in `pyproject.toml` under `[tool.pixi.*]`; channels
+`conda-forge` + `munch-group`; platforms `osx-arm64`, `linux-64`, `win-64`).
+Python is pinned `>=3.9,<3.11` for the reason above -- pixi will fetch a 3.10
+interpreter from conda-forge regardless of the system Python.
 
-#### string-db MCP Server
+- Dev install: `pixi run install-dev` (editable, no build isolation).
+- Run tests: `pixi run test` (== `pytest test/`).
+- Try the CLI: `pixi run print-steps some_script.py` (or, after
+  `install-dev`, plain `print-steps some_script.py`).
+- Try the widget: open a notebook, `import steps_widget`, then use `%%steps`.
+- Build docs: `pixi run api` (quartodoc API pages), then `pixi run docs` (execute
+  the doc notebooks in place).
+- Release: `pixi run bump` / `release` / `version` drive `scripts/bump_version.py`
+  + a tag push, which triggers the conda/PyPI workflows.
 
-**Use string-db for protein-protein interaction analysis and functional enrichment.**
+## Distribution
 
-Available tools:
+Both `.github/workflows/conda-release.yml` and `pypi-release.yml` trigger on
+version tag pushes (`vX.Y[.Z][.rcN]`):
 
-- **Identifier Mapping:**
-  - `get_string_ids`: Map protein names/IDs to STRING identifiers across species
-  - `resolve_proteins`: Standardize protein names to canonical STRING names
+- **conda**: builds natively on `macOS-latest`, `ubuntu-latest`, and
+  `windows-latest` (matrix in `conda-release.yml`), using
+  `conda-build/meta.yaml` -- which pins `python` (host and run) to
+  `pyproject.toml`'s `requires-python` via Jinja
+  (`load_file_data("../pyproject.toml", ...)`), so it never drifts from the
+  Python cap above. Uploaded to the `munch-group` Anaconda.org channel.
+- **pip**: pure-Python universal wheel (`build-wheel` job, no compiled
+  extensions), published to PyPI. A single wheel installs on all three platforms;
+  `pip` itself enforces the `requires-python` cap at install time.
 
-- **Network Analysis:**
-  - `get_network`: Retrieve protein-protein interaction networks with confidence filtering
-  - `get_interaction_partners`: Find interaction partners for given proteins (with confidence thresholds)
+## Gotchas
 
-- **Functional Enrichment:**
-  - `get_enrichment`: Perform functional enrichment analysis (GO terms, KEGG pathways, domains)
-  - `get_ppi_enrichment`: Test if protein sets have statistically significant interactions
+- **Constant folding hides steps.** CPython folds literal arithmetic like `1 + 2`
+  at compile time, so `_steps("1 + 2")` disassembles straight to `LOAD_CONST 3` --
+  there is no `BINARY_ADD` left to trace, and the result is just the one "As
+  written" entry, unchanged. Always demo/test with a variable (`x + 1`) or a
+  builtin call (`abs(-3) + 2`, never folded) to actually exercise a reduction step.
+- The final step of a traced **assignment** statement re-attaches the `lhs = `
+  prefix (e.g. `z = 39`), even though every intermediate substitution/reduction
+  step shows the bare right-hand-side value (`39`). Expected -- don't "fix" the
+  prefix-stripping regex in `_steps()` to strip it from the last step too.
 
-- **Cross-Species Analysis:**
-  - `get_homology`: Retrieve protein homology information across species
-  - `get_homology_best`: Find best homology matches in target species
+## Testing approach
 
-- **Utility:**
-  - `get_version`: Get current STRING database version
-
-**Supported species (common):**
-- Human (9606), Mouse (10090), Rat (10116)
-- Fruit fly (7227), C. elegans (6239), Yeast (4932)
-
-**Use string-db when:**
-- Analyzing protein interactions and networks
-- Performing functional enrichment analysis
-- Mapping proteins across species
-- Finding interaction partners or homologs
-- Testing for PPI enrichment in protein sets
-
-#### ensembl-db MCP Server
-
-**Use ensembl-db for genomic data retrieval and analysis via the Ensembl REST API.**
-
-Available tools (31 endpoints across 11 categories):
-
-- **Gene Lookup:**
-  - `lookup_gene_by_symbol`: Find genes by symbol (e.g., BRCA2)
-  - `lookup_gene_by_id`: Find genes by Ensembl stable ID
-
-- **Sequence Retrieval:**
-  - `get_sequence`: Retrieve DNA/RNA/protein sequences
-
-- **Variant Analysis:**
-  - `get_variants_for_region`: Find genetic variants in genomic regions
-  - `vep_region`: Predict variant consequences (Variant Effect Predictor)
-
-- **Cross-Species Homology:**
-  - `get_homology`: Find homologous genes/proteins across species
-
-- **Phenotype Data:**
-  - `get_phenotype_by_gene`: Retrieve phenotype annotations for genes
-
-- **Regulatory Features:**
-  - `get_regulatory_features`: Find regulatory elements in genomic regions
-
-- **Overlap Analysis:**
-  - `overlap_region`, `overlap_id`, `overlap_translation`: Find overlapping genomic features
-
-- **Cross-References:**
-  - `get_xrefs_by_gene`, `get_xrefs_by_symbol`, `get_xrefs_by_name`: External database references
-
-- **Coordinate Mapping:**
-  - Tools for mapping between assemblies and genomic/protein coordinates
-
-- **Ontology & Taxonomy:**
-  - Search and retrieve ontology terms and taxonomy information
-
-**Use ensembl-db when:**
-- Looking up genes by symbol or ID
-- Retrieving genomic sequences
-- Analyzing genetic variants and their effects
-- Finding gene homologs across species
-- Exploring phenotype associations
-- Identifying regulatory features
-- Mapping between genome assemblies
-
-### System Operations
-
-#### desktop-commander MCP Server
-
-**Use desktop-commander for advanced system interaction, terminal control, and development tasks.**
-
-Available capabilities:
-
-- **Terminal Control:**
-  - Execute terminal commands with output streaming
-  - Run long-running commands in background
-  - Manage and kill processes
-  - Monitor command output in real-time
-
-- **Filesystem Operations:**
-  - Read/write files
-  - Create/list directories
-  - Move files and directories
-  - Search files across filesystem
-  - Get file metadata
-  - Negative offset reading (like Unix `tail`)
-
-- **Code Editing:**
-  - Surgical text replacements in files
-  - Full file rewrites
-  - Multiple file editing
-  - Pattern-based replacements
-  - VSCode-ripgrep recursive code/text search
-
-- **Development Environment:**
-  - Execute code in memory (Python, Node.js, R)
-  - Instant data analysis for CSV/JSON files
-  - Interact with development servers and databases
-
-**Use desktop-commander when:**
-- Running terminal commands or shell scripts
-- Managing processes or background tasks
-- Performing filesystem operations
-- Editing code or text files
-- Searching code across the project
-- Executing code snippets for quick analysis
-- Interacting with development servers
-
-### General Purpose
-
-- **filesystem**: File operations within the workspace
-- **fetch**: Web content fetching for non-scientific content
-- **memory**: Persistent memory across conversations
-
-## Project Context
-
-- **Field**: Bioinformatics / Computational Biology
-- **Primary Language**: Python
-- **Environment**: Devcontainer with pixi package management
-
-## Code Style Preferences
-
-- Follow existing code style in the repository
-- Use type hints in Python code
-- Include docstrings for functions and classes
-- Follow scientific computing best practices
-
-## Citation Format
-
-When adding inline citations to scientific papers, use Author-Year format:
-- Up to two authors: (Munch, 2025) or (Munch and Hobolth, 2025)
-- Three or more: (Munch et al., 2025)
-- Citation labels should be hyperlinks to the paper on the journal website
-
-## Notes
-
-- This project uses MCP servers for enhanced capabilities
-- The devcontainer includes pixi for package management
-- MCP servers use pixi environments (conda packages + pip when needed)
-- PyPI-based servers are installed with pip in the shared pixi environment to ensure Python headers are available
+- `_steps()` operates on the **module globals of `steps_widget.steps` itself**
+  (the dispatch functions call bare `globals()`), not on the caller's locals --
+  tests that need variable substitution must set attributes on the `steps` module
+  directly (`steps_module.x = 7`), not on local variables. This is also why every
+  entry point historically `exec()`'d `steps.py`'s source into a shared namespace
+  rather than `import`ing it: the bytecode dispatch needs `_steps` and the
+  student's variables to live in the same `globals()`.
+- `StepsWidget(code, namespace={})` (or any dict) skips the live-kernel
+  `ip.run_cell()` path and `exec()`s into that dict instead -- this is how the
+  widget is tested without a running Jupyter kernel (`test/test_widget.py`).
+- `run_student_file()` is tested end-to-end (`test/test_print_steps.py`): it's
+  driven via `monkeypatch.setattr(sys, "argv", ...)` on a real temp script, and
+  since it shells out to a subprocess, output is captured with pytest's `capfd`
+  (file-descriptor level), not `capsys`.

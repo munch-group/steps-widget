@@ -5,19 +5,21 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "steps-widget"
 version = "0.1.16"
-description = "Project description"
+description = "Jupyter widget and CLI that trace Python expression evaluation step by step (the %%steps cell magic and the print-steps command)"
 authors = [
-    {name = "Your Name", email = "your@email.com"}
+    {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.9,<3.11"
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-
+    "anywidget>=0.11,<0.12",
+    "traitlets>=5.0",
+    "ipython",
 ]
 
 [project.urls]
@@ -26,7 +28,7 @@ Repository = "https://github.com/munch-group/steps-widget"
 Documentation = "https://munch-group.org/steps-widget"
 
 [project.scripts]
-steps-widget = "steps_widget:steps_widget"
+print-steps = "steps_widget.print_steps:run_student_file"
 
 [tool.setuptools]
 include-package-data = true
@@ -35,19 +37,23 @@ include-package-data = true
 where = ["src"]
 exclude = ["test*"]
 
-[tool.setuptools.package-data]
-steps_widget = ["data/*.txt", "data/*.csv", "data/*.pickle", "data/*.h5"]
-
 [tool.pixi.workspace]
 channels = ["conda-forge", "munch-group"]
-platforms = ["osx-arm64",  "linux-64"]
+platforms = ["osx-arm64",  "linux-64", "win-64"]
 
 [tool.pixi.dependencies]
-python = ">=3.9,<3.14"
+python = ">=3.9,<3.11"
+pytest = "*"
 jupyter = "*"
+quarto = "*"
+quartodoc = "*"
+nbconvert = "*"
 pip = ">=25.2,<26"
 nodejs = ">=20,<23"
+git = "*"
+gh = "*"
 ipython = "*"
+anywidget = ">=0.11,<0.12"
 
 # [tool.pixi.pypi-dependencies]
 # steps-widget = { path = ".", editable = true }
@@ -59,7 +65,7 @@ default = {solve-group = "default"}
 cmd = "python ./scripts/rename.py && gh repo set-default https://github.com/munch-group/$(basename $(git rev-parse --show-toplevel)) && git add src && git add -u"
 
 [tool.pixi.tasks.install-dev]
-cmd = "pip install --no-build-isolation --force-reinstall --no-deps ."
+cmd = "pip install --no-build-isolation --force-reinstall --no-deps -e ."
 description = "Development install"
 
 [tool.pixi.tasks.notebook]
@@ -79,8 +85,8 @@ cmd = "git clean -id"
 description = "Removes untracked files and directories but respects your .gitignores"
 
 [tool.pixi.tasks.test]
-cmd = "mkdir -p tests/pytest/tmp && jupyter nbconvert docs/pages/tutorial/*.ipynb --to script --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags='{\"skip-execution\"}' --output-dir tests/pytest/tmp && pytest tests/pytest/"
-description = "Run tests"
+cmd = "pytest test/"
+description = "Run the pytest suite"
 
 [tool.pixi.tasks.commit]
 cmd = "./scripts/git-commit.sh"
@@ -108,4 +114,8 @@ args = [
 cmd = "./scripts/bump_version.py --{{ kind }} {{ flag }} && git add pyproject.toml && git commit -m '{{ kind }} {{ flag }} version bump' && git push && ./scripts/github-release.sh"
 depends-on = ["test", "api", "docs", "commit"]
 description = "Bump version patch and push tag to build/upload conda/pypi packages"
+
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
 

@@ -1,19 +1,23 @@
 # Function reference {.doc .doc-index}
 
-## Some section
+## Widget
 
-Some description...
-
-
-| | |
-| --- | --- |
-| [functionname](functionname.qmd#steps_widget.modulename.functionname) | The sum of two numbers. |
-
-## Some other section
-
-Some description...
-
+The `%%steps` cell magic and the `StepsWidget` it renders.
 
 | | |
 | --- | --- |
-| [scriptname](scriptname.qmd#steps_widget.modulename.scriptname) |  |
+| [StepsWidget](StepsWidget.qmd#steps_widget.widget.StepsWidget) | Displays the substitution/reduction trace of `# PRINT STEPS`-tagged statements. |
+| [register_steps_magic](register_steps_magic.qmd#steps_widget.widget.register_steps_magic) | Register the `%%steps` cell magic. |
+
+## Command line
+
+The `print-steps` console script.
+
+| | |
+| --- | --- |
+| [run_student_file](run_student_file.qmd#steps_widget.print_steps.run_student_file) | Trace every `# PRINT STEPS`-tagged line of a student script to stderr. |
+
+::: {.callout-note}
+This page is a placeholder. Run `pixi run api` (quartodoc) to regenerate it and
+the per-symbol pages from the live docstrings.
+:::
