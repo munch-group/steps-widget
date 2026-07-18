@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "munch-group-library"
+name = "steps-widget"
 version = "0.1.16"
 description = "Project description"
 authors = [
@@ -21,12 +21,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/munch-group/munch-group-library"
-Repository = "https://github.com/munch-group/munch-group-library"
-Documentation = "https://munch-group.org/munch-group-library"
+Homepage = "https://github.com/munch-group/steps-widget"
+Repository = "https://github.com/munch-group/steps-widget"
+Documentation = "https://munch-group.org/steps-widget"
 
 [project.scripts]
-munch-group-library = "munch_group_library:munch_group_library"
+steps-widget = "steps_widget:steps_widget"
 
 [tool.setuptools]
 include-package-data = true
@@ -36,7 +36,7 @@ where = ["src"]
 exclude = ["test*"]
 
 [tool.setuptools.package-data]
-munch_group_library = ["data/*.txt", "data/*.csv", "data/*.pickle", "data/*.h5"]
+steps_widget = ["data/*.txt", "data/*.csv", "data/*.pickle", "data/*.h5"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge", "munch-group"]
@@ -44,25 +44,13 @@ platforms = ["osx-arm64",  "linux-64"]
 
 [tool.pixi.dependencies]
 python = ">=3.9,<3.14"
-pytest = "*"
 jupyter = "*"
-quarto = "*"
-quartodoc = "*"
-nbconvert = "*"
-anthropic = "*"
 pip = ">=25.2,<26"
 nodejs = ">=20,<23"
-git = "*"
-git-lfs = "*"
-gh = "*"
 ipython = "*"
-seaborn = "*"
-nbdime = ">=4.0.2,<5"
-vscodenb = "*"
-r-rsvg = "*"
 
 # [tool.pixi.pypi-dependencies]
-# munch-group-library = { path = ".", editable = true }
+# steps-widget = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = {solve-group = "default"}
