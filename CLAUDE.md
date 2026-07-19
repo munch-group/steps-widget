@@ -12,8 +12,12 @@ package for an introductory Python programming class). The code was ported over
 close to verbatim -- the stepper engine (`steps.py`) and the `# PRINT STEPS` tag
 convention (`print_steps.py`) are unchanged; only import paths, entry points, and
 packaging were adapted to this repo's `munch-group` template layout. `bp-help`
-also shipped a `myiagi` TUI trainer (`textual`-based) that was **not** ported --
-this repo covers only the notebook widget and the `print-steps` CLI.
+also shipped a `myiagi` TUI trainer (`textual`-based); it was **not** ported
+here -- this repo covers only the notebook widget and the `print-steps`
+CLI -- but was later ported separately to
+[`myiagi-widget`](https://github.com/munch-group/myiagi-widget), which
+depends on this package for `steps_widget.steps._steps()` rather than
+vendoring its own copy of the stepper.
 
 The repo was scaffolded from the `munch-group` Python-library template (pixi
 environment, quartodoc docs, conda/PyPI release automation) -- the same template
@@ -174,9 +178,11 @@ ops, comparisons incl. chained, `and`/`or` incl. mixed, method/function
 calls, slicing, list/dict literals) under a real interpreter of the new
 version and diff against what the nearest existing era table assumes --
 CPython has restructured this bytecode at every 3.11/3.12/3.13 boundary so
-far, there's no reason to expect 3.14 won't too (see `bp-help`'s `CLAUDE.md`
-for the same note against its `myiagi` TUI, which has the identical
-constraint and was never fixed).
+far, there's no reason to expect 3.14 won't too. `myiagi-widget` now depends
+on this package for exactly this dispatch table rather than vendoring its own
+copy (as `bp-help`'s original `myiagi` TUI did, permanently pinned to
+3.9/3.10 as a result) -- widening the cap here is what would let
+`myiagi-widget` follow suit, so re-verify with that consumer in mind too.
 
 **Known pre-existing gaps, out of scope for the dispatch tables above** (not
 introduced by the multi-era port, not fixed by it either):
