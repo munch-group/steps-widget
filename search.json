@@ -24,7 +24,7 @@
     "href": "pages/overview.html#the-steps-cell-magic",
     "title": "Overview",
     "section": "The %%steps cell magic",
-    "text": "The %%steps cell magic\nImporting steps_widget registers the %%steps cell magic. The cell still runs normally; every statement tagged # PRINT STEPS also gets a trace card below the cell showing each substitution and reduction step.\n\nimport steps_widget\n\n\n%%steps\nx = 7\ny = 5\nz = x * y + 4  # PRINT STEPS\nk = z * 42  # PRINT STEPS\n\nYou can also build a steps_widget.widget.StepsWidget directly from a source string, the same way the cell magic does internally:\n\nfrom steps_widget import StepsWidget\n\nStepsWidget('''\nz = x * y + 4  # PRINT STEPS\n''')",
+    "text": "The %%steps cell magic\nImporting steps_widget registers the %%steps cell magic. The cell still runs normally; every statement tagged # PRINT STEPS also gets a trace card below the cell showing each substitution and reduction step.\n\nimport steps_widget\n\n\n%%steps\nx = 7\ny = 5\nz = x * y + 4  # PRINT STEPS\nk = z * 42  # PRINT STEPS\n\n\n\n\nYou can also build a steps_widget.widget.StepsWidget directly from a source string, the same way the cell magic does internally:\n\nfrom steps_widget import StepsWidget\n\nStepsWidget('''\nz = x * y + 4  # PRINT STEPS\n''')",
     "crumbs": [
       "Overview"
     ]
@@ -40,11 +40,55 @@
     ]
   },
   {
+    "objectID": "api/run_student_file.html",
+    "href": "api/run_student_file.html",
+    "title": "run_student_file",
+    "section": "",
+    "text": "run_student_file\nsteps_widget.print_steps.run_student_file()",
+    "crumbs": [
+      "Command line",
+      "run_student_file"
+    ]
+  },
+  {
+    "objectID": "api/register_steps_magic.html",
+    "href": "api/register_steps_magic.html",
+    "title": "register_steps_magic",
+    "section": "",
+    "text": "register_steps_magic\nsteps_widget.widget.register_steps_magic(ipython=None)\nRegister the %%steps cell magic.\nIn IPython/Jupyter, prefixing a cell with %%steps traces every # PRINT STEPS-tagged statement in it and renders the result as a StepsWidget below the cell – the cell itself still runs normally::\n%%steps\nx = 7\ny = 5\nz = x * y + 4 # PRINT STEPS\nCalled automatically on import; returns True when a live shell is found, False otherwise (e.g. plain Python).",
+    "crumbs": [
+      "Widget",
+      "register_steps_magic"
+    ]
+  },
+  {
+    "objectID": "api/StepsWidget.html",
+    "href": "api/StepsWidget.html",
+    "title": "StepsWidget",
+    "section": "",
+    "text": "steps_widget.widget.StepsWidget(code, namespace=None)\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements in code, one panel per tagged line.\n\n\n\ncode : str\n\nSource to trace. Statements followed by a # PRINT STEPS-style comment (see steps_widget.print_steps) are evaluated step by step; everything else runs normally.\n\nnamespace : dict = None\n\nNamespace to execute code in. Defaults to the live notebook’s namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).",
+    "crumbs": [
+      "Widget",
+      "StepsWidget"
+    ]
+  },
+  {
+    "objectID": "api/StepsWidget.html#parameters",
+    "href": "api/StepsWidget.html#parameters",
+    "title": "StepsWidget",
+    "section": "",
+    "text": "code : str\n\nSource to trace. Statements followed by a # PRINT STEPS-style comment (see steps_widget.print_steps) are evaluated step by step; everything else runs normally.\n\nnamespace : dict = None\n\nNamespace to execute code in. Defaults to the live notebook’s namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).",
+    "crumbs": [
+      "Widget",
+      "StepsWidget"
+    ]
+  },
+  {
     "objectID": "api/index.html",
     "href": "api/index.html",
     "title": "Function reference",
     "section": "",
-    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements.\n\n\nregister_steps_magic\nRegister the %%steps cell magic.\n\n\n\n\n\n\nThe print-steps console script.\n\n\n\nrun_student_file\nTrace every # PRINT STEPS-tagged line of a student script to stderr.\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis page is a placeholder. Run pixi run api (quartodoc) to regenerate it and the per-symbol pages from the live docstrings.",
+    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged\n\n\nregister_steps_magic\nRegister the %%steps cell magic.\n\n\n\n\n\n\nThe print-steps console script.\n\n\n\nrun_student_file",
     "crumbs": [
       "Function reference"
     ]
@@ -54,7 +98,7 @@
     "href": "api/index.html#widget",
     "title": "Function reference",
     "section": "",
-    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements.\n\n\nregister_steps_magic\nRegister the %%steps cell magic.",
+    "text": "The %%steps cell magic and the StepsWidget it renders.\n\n\n\nStepsWidget\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged\n\n\nregister_steps_magic\nRegister the %%steps cell magic.",
     "crumbs": [
       "Function reference"
     ]
@@ -64,7 +108,7 @@
     "href": "api/index.html#command-line",
     "title": "Function reference",
     "section": "",
-    "text": "The print-steps console script.\n\n\n\nrun_student_file\nTrace every # PRINT STEPS-tagged line of a student script to stderr.\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nThis page is a placeholder. Run pixi run api (quartodoc) to regenerate it and the per-symbol pages from the live docstrings.",
+    "text": "The print-steps console script.\n\n\n\nrun_student_file",
     "crumbs": [
       "Function reference"
     ]

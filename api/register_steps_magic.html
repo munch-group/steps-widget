@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>index – steps-widget</title>
+<title>register_steps_magic – steps-widget</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,6 +23,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -33,7 +68,8 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../api/StepsWidget.html" rel="next">
+<link href="../api/run_student_file.html" rel="next">
+<link href="../api/StepsWidget.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -116,7 +152,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/index.html">Function reference</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/StepsWidget.html">Widget</a></li><li class="breadcrumb-item"><a href="../api/register_steps_magic.html">register_steps_magic</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -130,7 +166,7 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../api/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../api/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Function reference</span></a>
   </div>
 </li>
@@ -151,7 +187,7 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../api/register_steps_magic.html" class="sidebar-item-text sidebar-link">
+  <a href="../api/register_steps_magic.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">register_steps_magic</span></a>
   </div>
 </li>
@@ -184,52 +220,28 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#function-reference" id="toc-function-reference" class="nav-link active" data-scroll-target="#function-reference">Function reference</a>
-  <ul class="collapse">
-  <li><a href="#widget" id="toc-widget" class="nav-link" data-scroll-target="#widget">Widget</a></li>
-  <li><a href="#command-line" id="toc-command-line" class="nav-link" data-scroll-target="#command-line">Command line</a></li>
-  </ul></li>
+  <li><a href="#steps_widget.widget.register_steps_magic" id="toc-steps_widget.widget.register_steps_magic" class="nav-link active" data-scroll-target="#steps_widget.widget.register_steps_magic">register_steps_magic</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/StepsWidget.html">Widget</a></li><li class="breadcrumb-item"><a href="../api/register_steps_magic.html">register_steps_magic</a></li></ol></nav></header>
 
 
 
 
-<section id="function-reference" class="level1 doc doc-index">
-<h1 class="doc doc-index">Function reference</h1>
-<section id="widget" class="level2">
-<h2 class="anchored" data-anchor-id="widget">Widget</h2>
-<p>The <code>%%steps</code> cell magic and the <code>StepsWidget</code> it renders.</p>
-<table class="caption-top table">
-<tbody>
-<tr class="odd">
-<td><a href="../api/StepsWidget.html#steps_widget.widget.StepsWidget">StepsWidget</a></td>
-<td>Displays the substitution/reduction trace of <code># PRINT STEPS</code>-tagged</td>
-</tr>
-<tr class="even">
-<td><a href="../api/register_steps_magic.html#steps_widget.widget.register_steps_magic">register_steps_magic</a></td>
-<td>Register the <code>%%steps</code> cell magic.</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="command-line" class="level2">
-<h2 class="anchored" data-anchor-id="command-line">Command line</h2>
-<p>The <code>print-steps</code> console script.</p>
-<table class="caption-top table">
-<tbody>
-<tr class="odd">
-<td><a href="../api/run_student_file.html#steps_widget.print_steps.run_student_file">run_student_file</a></td>
-<td></td>
-</tr>
-</tbody>
-</table>
+<section id="steps_widget.widget.register_steps_magic" class="level1">
+<h1>register_steps_magic</h1>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>steps_widget.widget.register_steps_magic(ipython<span class="op">=</span><span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Register the <code>%%steps</code> cell magic.</p>
+<p>In IPython/Jupyter, prefixing a cell with <code>%%steps</code> traces every <code># PRINT STEPS</code>-tagged statement in it and renders the result as a <code>StepsWidget</code> below the cell – the cell itself still runs normally::</p>
+<pre><code>%%steps
+x = 7
+y = 5
+z = x * y + 4 # PRINT STEPS</code></pre>
+<p>Called automatically on import; returns True when a live shell is found, False otherwise (e.g.&nbsp;plain Python).</p>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
@@ -635,10 +647,13 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
+      <a href="../api/StepsWidget.html" class="pagination-link" aria-label="StepsWidget">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">StepsWidget</span>
+      </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../api/StepsWidget.html" class="pagination-link" aria-label="StepsWidget">
-        <span class="nav-page-text">StepsWidget</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../api/run_student_file.html" class="pagination-link" aria-label="run_student_file">
+        <span class="nav-page-text">run_student_file</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
