@@ -36,7 +36,7 @@ def _build_steps_exec_oneliner():
     line), so injecting it ahead of instrumented code doesn't shift that code's line numbers."""
     with open(_steps_module.__file__) as f:
         steps_code = f.read()
-    escaped = steps_code.translate(str.maketrans({"\n": r"\n", "\'": r"\'", '\"': r'\"'}))
+    escaped = steps_code.translate(str.maketrans({"\\": r"\\", "\n": r"\n", "\'": r"\'", '\"': r'\"'}))
     return f'exec("""{escaped}""")'
 
 
