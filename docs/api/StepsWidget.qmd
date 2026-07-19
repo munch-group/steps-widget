@@ -1,0 +1,18 @@
+# StepsWidget { #steps_widget.widget.StepsWidget }
+
+```python
+steps_widget.widget.StepsWidget(code, namespace=None)
+```
+
+Displays the substitution/reduction trace of `# PRINT STEPS`-tagged
+statements in `code`, one panel per tagged line.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**code**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation}</code>
+
+:   Source to trace. Statements followed by a `# PRINT STEPS`-style comment (see `steps_widget.print_steps`) are evaluated step by step; everything else runs normally.
+
+<code>[**namespace**]{.parameter-name} [:]{.parameter-annotation-sep} [[dict](`dict`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Namespace to execute `code` in. Defaults to the live notebook's namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).

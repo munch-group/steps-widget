@@ -25,8 +25,10 @@ The package is `steps_widget` under `src/`:
 
 - `src/steps_widget/steps.py` -- the stepper engine. `_steps(expr)` disassembles a
   Python expression string with `dis`, walks the CPython bytecode instructions one
-  at a time through `_inst_map` (a dispatch table keyed by opcode name, e.g.
-  `BINARY_ADD`, `CALL_FUNCTION`, `LOAD_ATTR`), and reconstructs the expression as a
+  at a time (by list index, not raw byte offset) through one of three
+  version-specific dispatch tables keyed by opcode name (e.g. `BINARY_ADD`,
+  `CALL_FUNCTION`, `LOAD_ATTR` on 3.9/3.10; see "Multi-era bytecode dispatch"
+  below for the 3.11/3.12/3.13 tables), and reconstructs the expression as a
   string after each operation -- producing a list of intermediate "steps" that
   mirror Python's actual evaluation order (substitution of variable/attribute/call
   loads, then reduction of each binary/unary op, with `and`/`or`/comparison chains
@@ -65,7 +67,11 @@ The package is `steps_widget` under `src/`:
   Importing `steps_widget` therefore both exposes the public API and registers the
   cell magic as a side effect.
 - `test/` -- headless pytest suite (`test_steps.py`, `test_print_steps.py`,
-  `test_widget.py`) + `conftest.py` that puts `src/` on `sys.path`.
+  `test_widget.py`) + `conftest.py` that puts `src/` on `sys.path`. Every test
+  runs unmodified under whichever interpreter invokes pytest -- multi-version
+  coverage comes from running the same suite under different real
+  interpreters (see `.github/workflows/test.yml`'s matrix), not from
+  version-conditional tests.
 - `docs/` -- Quarto + quartodoc site (`docs/pages/*.ipynb` prose, `docs/api/*.qmd`
   API ref -- the checked-in `.qmd` files are placeholders; run `pixi run api` to
   regenerate them from the live docstrings).
@@ -75,26 +81,116 @@ The package is `steps_widget` under `src/`:
   macOS, Linux, and Windows.
 - `scripts/` -- version-bump / docs-build / release helpers invoked by pixi tasks.
 
-## Critical constraint: Python 3.9/3.10 only
+## Multi-era bytecode dispatch: Python 3.10-3.13
 
-`steps.py`'s dispatch table (`_inst_map`) is keyed by CPython 3.9/3.10 bytecode
-opcode names (`BINARY_ADD`, `CALL_FUNCTION`, `LOAD_METHOD`/`CALL_METHOD`, ...).
-Python 3.11 restructured many of these (`BINARY_ADD` and friends collapsed into
-`BINARY_OP`; `CALL_FUNCTION`/`CALL_METHOD` replaced by `PRECALL`/`CALL`), so this
-code cannot work unmodified on 3.11+. This is enforced two ways:
+`steps.py` disassembles expressions with `dis` and walks the resulting
+instructions by **list index**, not raw byte offset: CPython 3.11+'s adaptive
+interpreter inserts `CACHE` pseudo-instructions that `dis.get_instructions()`
+hides from iteration by default but which still occupy real byte-offset space,
+so `offset // 2`-style indexing (valid on 3.9/3.10, where every instruction is
+exactly 2 bytes) silently breaks on 3.11+ independent of any opcode renaming.
+`_offset_to_index()` resolves jump targets (byte offsets in `argval`) to list
+positions by matching `.offset`, and every handler returns/consumes indices,
+not offsets.
 
-- `pyproject.toml` pins `requires-python = ">=3.9,<3.11"`, so `pip`/`conda` refuse
-  to install the package on a newer interpreter.
-- `_steps()` itself raises a `RuntimeError` with a clear message if
-  `sys.version_info >= (3, 11)`, as a safety net for anyone who installs anyway
-  (e.g. `pip install --ignore-requires-python`) -- without it the failure mode is a
-  confusing `KeyError` on the missing opcode name.
+On top of that index-based walk, opcode *names* and *shapes* genuinely change
+across CPython versions, so there are **three dispatch table pairs**
+(`_inst_map`/`_inst_type` + era suffix), selected once near the top of
+`_steps()` by `sys.version_info`:
 
-Both the conda recipe (`conda-build/meta.yaml`) and the pixi workspace
-(`[tool.pixi.dependencies]` in `pyproject.toml`) mirror this cap. **Do not** widen
-`requires-python` without first reworking `steps.py`'s dispatch table for the
-newer opcode set (see `bp-help`'s `CLAUDE.md` for the same note against its
-`myiagi` TUI, which has the identical constraint and was never fixed).
+- **`_inst_map`/`_inst_type`** (no suffix) -- Python 3.9/3.10. The original
+  table; e.g. `BINARY_ADD`, `CALL_FUNCTION`, `CALL_METHOD`, `DUP_TOP`/`ROT_TWO`/
+  `ROT_THREE`, `JUMP_IF_FALSE_OR_POP`/`JUMP_IF_TRUE_OR_POP`/`POP_JUMP_IF_FALSE`.
+- **`_inst_map_311`/`_inst_type_311`** -- Python 3.11. Built as `dict(_inst_map)`
+  plus overrides: `RESUME`/`PUSH_NULL`/`PRECALL` (no-ops), a generic
+  `_binary_op` (all the `BINARY_*` opcodes collapse into `BINARY_OP`, keyed by
+  `argrepr`'s operator symbol), a unified `_call` (`CALL_FUNCTION`/`CALL_METHOD`
+  collapse into `CALL`), and generalized `_copy`/`_swap` (`DUP_TOP`/`ROT_TWO`/
+  `ROT_THREE` collapse into `COPY(n)`/`SWAP(n)`). `JUMP_IF_FALSE_OR_POP`/
+  `JUMP_IF_TRUE_OR_POP` are unchanged; `POP_JUMP_IF_FALSE` is renamed
+  `POP_JUMP_FORWARD_IF_FALSE` (jumps became direction-qualified).
+- **`_inst_map_312`/`_inst_type_312`** (plus a two-entry `_inst_map_313`/
+  `_inst_type_313` diff for `TO_BOOL`) -- Python 3.12/3.13. `LOAD_METHOD` is
+  folded into `LOAD_ATTR` (`_load_attr_312` detects the method-call shape via
+  `argrepr != argval`, never parses `argrepr`'s "NULL|self" decoration, whose
+  word order even flips between 3.12 and 3.13). `PRECALL` is gone. 2-argument
+  slicing gets its own `BINARY_SLICE` opcode (3-argument slicing still routes
+  through `BUILD_SLICE`+`BINARY_SUBSCR` on every version). Biggest change:
+  `JUMP_IF_FALSE_OR_POP`/`JUMP_IF_TRUE_OR_POP` are retired entirely --
+  `COPY(1)` [+ `TO_BOOL` on 3.13] + `POP_JUMP_IF_FALSE`/`POP_JUMP_IF_TRUE` +
+  `POP_TOP` now implements *every* and/or/chained-comparison short-circuit
+  shape uniformly, so `_pop_jump_if_false_312`/`_pop_jump_if_true_312`'s
+  narrative text is deliberately role-agnostic rather than claiming "moves to
+  right side of and/or" -- the same opcode now plays roles that used to be
+  split across different opcodes with different narratives. They check
+  whether the jump target is `RETURN_VALUE` to decide whether to use the
+  precise pre-3.12 "terminates logic sequence" wording (genuinely terminal,
+  e.g. isolated `and`/`or`) or the generic "short-circuits here" wording
+  (jump lands on more logic-checking code, e.g. mixed `and`-then-`or`).
+
+`_call` (used by all three of 3.11/3.12/3.13) resolves the plain-call vs.
+method-call shape by checking **both** of the two non-arg popped stack items
+for identity against a `_NULL_SENTINEL` object, rather than assuming a fixed
+pop position -- `PUSH_NULL`'s position relative to the callable genuinely
+flips between 3.11/3.12 and 3.13 (verified empirically), and a fixed-position
+assumption would silently swap the receiver and method name for one of the
+three eras instead of crashing.
+
+Each table's era also gets its own `_era_non_oprations` list (opcodes that
+never get their own reveal step) and `_era_logic_opnames` list (which opcodes
+`_is_not_logic_expr` treats as evidence of and/or/comparison logic, used to
+suppress a spurious first "Sub-expression" step for non-logic expressions).
+**When adding a new opcode to any era's table, always add pure-plumbing
+opcodes to that era's `_era_non_oprations` too** -- `_inst_type[opname] = ''`
+alone does *not* suppress the opcode name from leaking into the UI as a raw
+label (the check at `_op_performed = _era_inst_type[_op_performed]` only
+replaces a *truthy* mapped value, and `''` is falsy), which is exactly what
+happened pre-fix with `DUP_TOP`/`ROT_TWO`/`ROT_THREE`/`POP_TOP`/`JUMP_FORWARD`
+on 3.9/3.10 (confirmed live, e.g. `[DUP_TOP] 2 < c` instead of a blank label)
+and would happen again for any new silent opcode that's declared only in
+`_inst_type`.
+
+This is enforced two ways:
+
+- `pyproject.toml` pins `requires-python = ">=3.10,<3.14"`. The floor is
+  3.10, not 3.9, even though `_steps()`'s dispatch logic itself still works
+  fine on 3.9 (verified) -- `anywidget>=0.11,<0.12`, this package's own
+  runtime dependency, requires Python `>=3.10` on both PyPI and conda-forge,
+  so the package as a whole was never actually installable on 3.9 regardless
+  of the stepper. The ceiling is 3.14 because that's as far as the dispatch
+  tables above have been built and verified against real interpreters --
+  nothing about CPython 3.14 has been checked.
+- `_steps()` itself raises a `RuntimeError` with a clear message outside
+  `[3.10, 3.14)`, as a safety net for anyone who installs anyway (e.g.
+  `pip install --ignore-requires-python`) -- without it the failure mode
+  would be a confusing `KeyError` on a missing opcode name.
+
+The conda recipe (`conda-build/meta.yaml`) derives its Python pin from
+`pyproject.toml`'s `requires-python` via Jinja, so it never needs a separate
+manual edit when this cap changes. **Do not** widen `requires-python` past
+3.14 without first repeating the empirical verification this range required:
+`dis`-disassemble this tool's supported expression grammar (binary/bitwise
+ops, comparisons incl. chained, `and`/`or` incl. mixed, method/function
+calls, slicing, list/dict literals) under a real interpreter of the new
+version and diff against what the nearest existing era table assumes --
+CPython has restructured this bytecode at every 3.11/3.12/3.13 boundary so
+far, there's no reason to expect 3.14 won't too (see `bp-help`'s `CLAUDE.md`
+for the same note against its `myiagi` TUI, which has the identical
+constraint and was never fixed).
+
+**Known pre-existing gaps, out of scope for the dispatch tables above** (not
+introduced by the multi-era port, not fixed by it either):
+- `_call_method` (the 3.9/3.10-only handler for method calls) doesn't reverse
+  popped args, so a 2+-arg method call silently uses the wrong argument order
+  on 3.9/3.10 specifically (e.g. `"hello".replace("l", "L")` traced via
+  `_call_method` produces `'hello'` unchanged instead of `'heLLo'`) -- fixed
+  for 3.11+ as a side effect of writing the unified `_call` handler correctly,
+  never backported to `_call_method` itself.
+- List/dict comprehensions, lambdas, `for`-loops, user-defined function bodies
+  (`MAKE_FUNCTION`/`LOAD_FAST`/`FOR_ITER`/`GET_ITER` etc.) and dict literals
+  with non-constant keys (`{a: b}`, compiles to `BUILD_MAP`) all `KeyError`
+  today on every supported version -- never implemented (abandoned partial
+  attempts exist commented-out in `steps.py`), not a version-compatibility gap.
 
 ## The `# PRINT STEPS` tag convention
 
@@ -108,8 +204,11 @@ is ignored, not traced.
 
 Pixi-managed (config in `pyproject.toml` under `[tool.pixi.*]`; channels
 `conda-forge` + `munch-group`; platforms `osx-arm64`, `linux-64`, `win-64`).
-Python is pinned `>=3.9,<3.11` for the reason above -- pixi will fetch a 3.10
-interpreter from conda-forge regardless of the system Python.
+Python is pinned `>=3.10,<3.14` for the reason above -- pixi will fetch a
+matching interpreter from conda-forge regardless of the system Python (a
+single environment/solve-group, currently resolving to 3.10; the wider
+`3.10-3.13` range is exercised in CI via `.github/workflows/test.yml`'s
+matrix, not via multiple local pixi environments).
 
 - Dev install: `pixi run install-dev` (editable, no build isolation).
 - Run tests: `pixi run test` (== `pytest test/`).

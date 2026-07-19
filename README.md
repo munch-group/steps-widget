@@ -22,8 +22,9 @@ y = 5
 z = x * y + 4  # PRINT STEPS
 ```
 
-Requires **Python 3.9 or 3.10** -- the stepper dispatches on CPython bytecode
-opcode names that Python 3.11 restructured.
+Requires **Python 3.10 through 3.13** -- the stepper dispatches on CPython
+bytecode opcode names, which change across these versions; each is handled by
+its own dispatch table (see `CLAUDE.md`).
 
 ```bash
 pip install steps-widget

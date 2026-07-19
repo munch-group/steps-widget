@@ -4,20 +4,17 @@
 
 The `%%steps` cell magic and the `StepsWidget` it renders.
 
+
 | | |
 | --- | --- |
-| [StepsWidget](StepsWidget.qmd#steps_widget.widget.StepsWidget) | Displays the substitution/reduction trace of `# PRINT STEPS`-tagged statements. |
+| [StepsWidget](StepsWidget.qmd#steps_widget.widget.StepsWidget) | Displays the substitution/reduction trace of `# PRINT STEPS`-tagged |
 | [register_steps_magic](register_steps_magic.qmd#steps_widget.widget.register_steps_magic) | Register the `%%steps` cell magic. |
 
 ## Command line
 
 The `print-steps` console script.
 
+
 | | |
 | --- | --- |
-| [run_student_file](run_student_file.qmd#steps_widget.print_steps.run_student_file) | Trace every `# PRINT STEPS`-tagged line of a student script to stderr. |
-
-::: {.callout-note}
-This page is a placeholder. Run `pixi run api` (quartodoc) to regenerate it and
-the per-symbol pages from the live docstrings.
-:::
+| [run_student_file](run_student_file.qmd#steps_widget.print_steps.run_student_file) |  |

@@ -1,6 +1,7 @@
 # Sphinx inventory version 2
-# Project: steps-widget
+# Project: steps_widget
 # Version: 0.0.9999
 # The remainder of this file is compressed using zlib.
-steps_widget.modulename.functionname py:function 1 api/functionname.html#steps_widget.modulename.functionname -
-steps_widget.modulename.scriptname py:function 1 api/scriptname.html#steps_widget.modulename.scriptname -
+steps_widget.widget.StepsWidget py:class 1 api/StepsWidget.html#steps_widget.widget.StepsWidget -
+steps_widget.widget.register_steps_magic py:function 1 api/register_steps_magic.html#steps_widget.widget.register_steps_magic -
+steps_widget.print_steps.run_student_file py:function 1 api/run_student_file.html#steps_widget.print_steps.run_student_file -

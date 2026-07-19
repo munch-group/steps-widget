@@ -63,10 +63,20 @@ _TRACE_VAR = "__steps_widget_trace__"
 # --------------------------------------------------------------------------- #
 
 _ESM = r"""
+/**
+ * HTML-escape a string (&, <, >) for safe embedding in markup built as an
+ * HTML string. Step text/code is otherwise inserted via textContent
+ * elsewhere in this file, which escapes automatically -- this helper is
+ * for any spot that instead assembles raw HTML.
+ */
 function esc(s){
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
+// Maps a step's `label` -- one of the four categories `_steps(..., _with_labels=True)`
+// emits ("As written" for the untouched statement, then "Substitution"/"Reduction"/
+// "Logic" for each subsequent step; see steps.py / CLAUDE.md) -- to the CSS class
+// that colors its badge (see .sw-lbl-* rules in _CSS below).
 const LABEL_CLASS = {
   "As written": "sw-lbl-written",
   "Substitution": "sw-lbl-sub",
@@ -74,8 +84,21 @@ const LABEL_CLASS = {
   "Logic": "sw-lbl-logic",
 };
 
+/**
+ * CSS class for a step's label badge; falls back to a neutral "other" style
+ * for any label not in LABEL_CLASS (defensive against future/unrecognized
+ * labels rather than rendering an unstyled badge).
+ */
 function labelClass(label){ return LABEL_CLASS[label] || "sw-lbl-other"; }
 
+/**
+ * Render one entry of the `sections` traitlet -- `{line, code, steps}` where
+ * `line` is the 1-based source line number, `code` is the original tagged
+ * statement, and `steps` is the `[{label, text}, ...]` trace produced by
+ * `_steps(expr, _with_labels=True)` (see StepsWidget.__init__ in widget.py) --
+ * as a card: a header with the line number + statement, then an ordered list
+ * of steps each showing a colored label badge and the step's text.
+ */
 function buildSection(section){
   const box = document.createElement("div");
   box.className = "sw-section";
@@ -111,7 +134,18 @@ function buildSection(section){
   return box;
 }
 
+/**
+ * anywidget render entry point, called once per view with the traitlet
+ * `model` and the container `el` to draw into. Builds the section list now
+ * and wires it to redraw whenever the model's data changes; returns a
+ * teardown function per anywidget's render/cleanup contract.
+ */
 function render({ model, el }){
+  /**
+   * (Re)build the full section list into `el` from the current `sections`
+   * traitlet, replacing any previous content. Shows a placeholder message
+   * when no `# PRINT STEPS`-tagged lines were traced.
+   */
   function draw(){
     el.innerHTML = "";
     const root = document.createElement("div");
@@ -129,6 +163,11 @@ function render({ model, el }){
     el.appendChild(root);
   }
   draw();
+  // Re-draw whenever Python pushes a new `sections` value (e.g. re-running the
+  // %%steps cell, or constructing a new StepsWidget that updates this same
+  // comm/view) so the widget stays in sync without a full re-render. The
+  // returned function unsubscribes when anywidget tears this view down,
+  // preventing duplicate listeners from piling up across re-renders.
   model.on("change:sections", draw);
   return () => model.off("change:sections", draw);
 }
@@ -137,6 +176,12 @@ export default { render };
 """
 
 _CSS = r"""
+/* Styles for the DOM built by buildSection()/render() in _ESM above: one
+   .sw-section card per traced line, containing a .sw-head (line number +
+   code) and a .sw-steps list of .sw-step rows (badge + text). The .sw-lbl-*
+   rules are the colors selected by LABEL_CLASS/labelClass() in _ESM, one per
+   step label ("As written"/"Substitution"/"Reduction"/"Logic", plus a
+   neutral "other" fallback). */
 .sw-root { display: flex; flex-direction: column; gap: 14px;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .sw-section { border: 1px solid #d0d0d8; border-radius: 8px; background: #fbfbfd;

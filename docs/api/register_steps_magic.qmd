@@ -1,0 +1,19 @@
+# register_steps_magic { #steps_widget.widget.register_steps_magic }
+
+```python
+steps_widget.widget.register_steps_magic(ipython=None)
+```
+
+Register the `%%steps` cell magic.
+
+In IPython/Jupyter, prefixing a cell with `%%steps` traces every
+`# PRINT STEPS`-tagged statement in it and renders the result as a
+`StepsWidget` below the cell -- the cell itself still runs normally::
+
+    %%steps
+    x = 7
+    y = 5
+    z = x * y + 4 # PRINT STEPS
+
+Called automatically on import; returns True when a live shell is found,
+False otherwise (e.g. plain Python).
