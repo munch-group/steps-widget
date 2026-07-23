@@ -182,7 +182,7 @@ _CSS = r"""
    rules are the colors selected by LABEL_CLASS/labelClass() in _ESM, one per
    step label ("As written"/"Substitution"/"Reduction"/"Logic", plus a
    neutral "other" fallback). */
-.sw-root { display: flex; flex-direction: column; gap: 14px;
+.sw-root { display: flex; flex-direction: column; gap: 14px; margin-top: 14px;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .sw-section { border: 1px solid #d0d0d8; border-radius: 8px; background: #fbfbfd;
   box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 10px 14px; }
