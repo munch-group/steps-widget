@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "steps-widget"
-version = "0.2.2"
+version = "0.2.3"
 description = "Jupyter widget and CLI that trace Python expression evaluation step by step (the %%steps cell magic and the print-steps command)"
 authors = [
     {name = "Kasper Munch", email = "kaspermunch@birc.au.dk"}
