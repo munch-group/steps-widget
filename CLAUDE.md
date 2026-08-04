@@ -131,6 +131,18 @@ across CPython versions, so there are **three dispatch table pairs**
   precise pre-3.12 "terminates logic sequence" wording (genuinely terminal,
   e.g. isolated `and`/`or`) or the generic "short-circuits here" wording
   (jump lands on more logic-checking code, e.g. mixed `and`-then-`or`).
+  3.12+ also peephole-collapses a plain `LOAD_CONST c; RETURN_VALUE` tail
+  into one `RETURN_CONST` when the returned value is itself a literal --
+  verified this only fires when the *entire* expression constant-folds to a
+  single value (e.g. `_steps("3 + 2 * 4 + 9")` disassembles to just
+  `RESUME`+`RETURN_CONST`, no `BINARY_OP` left to trace, previously an
+  unhandled `KeyError`); an and/or/comparison jump target that returns a
+  literal still emits a genuine `RETURN_VALUE` reading off the stack
+  (confirmed empirically for `x and 5`), so `_return_const` never interacts
+  with the `POP_JUMP_IF_FALSE`/`POP_JUMP_IF_TRUE` jump-target checks above --
+  it's the exact same "constant folding hides steps" case the Gotchas
+  section documents for pre-3.12 `LOAD_CONST`, just 3.12+'s opcode spelling
+  of it.
 
 `_call` (used by all three of 3.11/3.12/3.13) resolves the plain-call vs.
 method-call shape by checking **both** of the two non-arg popped stack items

@@ -750,12 +750,31 @@ def _to_bool(_stack, _instructions, _idx, _prefix, _evl):
     # better, not less correctly.
     return _idx+1, None
 
+def _return_const(_stack, _instructions, _idx, _prefix, _evl):
+    # 3.12+ peephole-collapses a plain `LOAD_CONST c; RETURN_VALUE` tail
+    # into one RETURN_CONST when the returned value is itself a literal --
+    # verified this only fires when the *entire* expression constant-folds
+    # to a single value (e.g. `3 + 2 * 4 + 9` -> `20`, disassembling to just
+    # RESUME + RETURN_CONST with no other opcode at all); an and/or/
+    # comparison jump target that returns a literal still emits a genuine
+    # RETURN_VALUE reading off the stack (confirmed empirically for `x and
+    # 5`), so this handler never has to interact with the jump-target
+    # RETURN_VALUE checks in _pop_jump_if_false_312/_pop_jump_if_true_312.
+    # No LOAD_CONST ran, so the value never touched _stack -- argval carries
+    # it directly. This is the same "constant folding hides steps" case the
+    # module docstring already documents for pre-3.12 versions (LOAD_CONST
+    # + RETURN_VALUE also skips straight to one step there); RETURN_CONST
+    # is just 3.12+'s spelling of the identical shape.
+    _result = repr(_instructions[_idx].argval)
+    return _idx+1, _prefix + _result
+
 _inst_map_312 = dict(_inst_map_311)
 _inst_map_312.update({
     'LOAD_ATTR': _load_attr_312,
     'BINARY_SLICE': _binary_slice,
     'POP_JUMP_IF_FALSE': _pop_jump_if_false_312,
     'POP_JUMP_IF_TRUE': _pop_jump_if_true_312,
+    'RETURN_CONST': _return_const,
 })
 # opcodes that existed on 3.11 but are gone by 3.12: LOAD_METHOD (folded
 # into LOAD_ATTR), PRECALL (dropped), the FORWARD/BACKWARD-qualified
@@ -776,6 +795,7 @@ _inst_type_312.update({
     'BINARY_SLICE': 'Substitution',
     'POP_JUMP_IF_FALSE': 'Logic',
     'POP_JUMP_IF_TRUE': 'Logic',
+    'RETURN_CONST': 'Reduction',
 })
 for _opname in (
     'LOAD_METHOD', 'PRECALL', 'POP_JUMP_FORWARD_IF_FALSE',

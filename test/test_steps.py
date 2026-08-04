@@ -24,6 +24,17 @@ def test_reduction_simple():
     assert result[-1] == "5"
 
 
+def test_fully_constant_expression_does_not_crash():
+    # on 3.12+ a fully constant-folded expression disassembles to a lone
+    # RETURN_CONST (no LOAD_CONST/BINARY_OP at all -- the whole computation
+    # happens at compile time), which is a distinct opcode from the
+    # LOAD_CONST+RETURN_VALUE pair pre-3.12 emits for the same case;
+    # regression test for a KeyError on RETURN_CONST. Same "no reduction
+    # step to show" outcome as the LOAD_CONST case either way.
+    result = _steps("3 + 2 * 4 + 9")
+    assert result == ["3 + 2 * 4 + 9"]
+
+
 def test_with_labels_marks_written_and_reduction():
     result = _steps("abs(-3) + 2", _with_labels=True)
     labels = [label for label, _ in result]
