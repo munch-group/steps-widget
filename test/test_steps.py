@@ -24,15 +24,38 @@ def test_reduction_simple():
     assert result[-1] == "5"
 
 
-def test_fully_constant_expression_does_not_crash():
-    # on 3.12+ a fully constant-folded expression disassembles to a lone
-    # RETURN_CONST (no LOAD_CONST/BINARY_OP at all -- the whole computation
-    # happens at compile time), which is a distinct opcode from the
-    # LOAD_CONST+RETURN_VALUE pair pre-3.12 emits for the same case;
-    # regression test for a KeyError on RETURN_CONST. Same "no reduction
-    # step to show" outcome as the LOAD_CONST case either way.
+def test_bare_constant_expression_does_not_crash():
+    # a *lone* literal (nothing for _wrap_literals to hang a BinOp/UnaryOp
+    # wrap on) still constant-folds all the way through. On 3.12+ that
+    # disassembles to a lone RETURN_CONST (no LOAD_CONST/BINARY_OP at all --
+    # the whole computation happens at compile time), a distinct opcode from
+    # the LOAD_CONST+RETURN_VALUE pair pre-3.12 emits for the same case;
+    # regression test for a KeyError on RETURN_CONST.
+    result = _steps("42")
+    assert result == ["42"]
+
+
+def test_literal_arithmetic_respects_operator_precedence():
+    # _wrap_literals defeats the compiler's constant folding of pure-literal
+    # sub-expressions (see the module docstring's "Constant folding hides
+    # steps" note) by wrapping each numeric literal in an opaque __lit(...)
+    # call, so this now traces through real BINARY_OP instructions instead
+    # of disassembling straight to a single folded "20". Operator precedence
+    # itself was never the problem -- the compiler already bakes it into the
+    # *nesting* of the emitted instructions -- so multiplication (higher
+    # precedence) reduces before either addition, and the additions then
+    # apply left-to-right.
     result = _steps("3 + 2 * 4 + 9")
-    assert result == ["3 + 2 * 4 + 9"]
+    assert result == ["3 + 2 * 4 + 9", "3 + 8 + 9", "11 + 9", "20"]
+
+
+def test_literal_unary_negative_and_invert():
+    # -3/~5 constant-fold to a bare LOAD_CONST too (confirmed empirically --
+    # dis never emits UNARY_NEGATIVE/UNARY_INVERT for a literal operand), so
+    # _wrap_literals wrapping the operand is what first exercises these two
+    # dispatch handlers at all.
+    assert _steps("-3 * 4") == ["-3 * 4", "-12"]
+    assert _steps("~5 & 3") == ["~5 & 3", "-6 & 3", "2"]
 
 
 def test_with_labels_marks_written_and_reduction():

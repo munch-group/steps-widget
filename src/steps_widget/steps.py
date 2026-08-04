@@ -2,6 +2,7 @@ import dis
 import types
 import sys
 import re
+import ast
 import inspect
 import typing
 import copy
@@ -235,6 +236,31 @@ def _unary_not(_stack, _instructions, _idx, _prefix, _evl):
     _push(_stack, _expr, _evl)
     return _idx+1, None
 
+# -x -- previously unreachable: a literal like "-3" constant-folds to a bare
+# LOAD_CONST before this opcode would ever appear, but _wrap_literals (see
+# below) defeats that folding by wrapping the operand in __lit(...), which
+# exposes a genuine UNARY_NEGATIVE for the first time. Stable opcode name
+# across 3.9-3.13 (unlike the BINARY_* family, never folded into a generic
+# UNARY_OP), confirmed empirically.
+def _unary_negative(_stack, _instructions, _idx, _prefix, _evl):
+    _var = _stack.pop()
+    _expr = f"-{_var}"
+    _push(_stack, _expr, _evl)
+    return _idx+1, None
+
+# ~x -- same previously-unreachable-until-_wrap_literals story as
+# _unary_negative above.
+def _unary_invert(_stack, _instructions, _idx, _prefix, _evl):
+    _var = _stack.pop()
+    _expr = f"~{_var}"
+    _push(_stack, _expr, _evl)
+    return _idx+1, None
+
+# +x is deliberately NOT handled here: unlike -x/~x, unary positive on 3.12+
+# compiles to CALL_INTRINSIC_1 (INTRINSIC_UNARY_POSITIVE) rather than a
+# stable per-version opcode (confirmed empirically), so _wrap_literals never
+# wraps a literal that is a direct operand of unary "+".
+
 # and
 def _jump_if_false_or_pop(_stack, _instructions, _idx, _prefix, _evl):
     _a = _stack.pop()
@@ -392,6 +418,8 @@ _inst_map = {
     'BINARY_FLOOR_DIVIDE': _binary_floor_divide,
     'BINARY_MODULO': _binary_modulo,
     'UNARY_NOT': _unary_not,
+    'UNARY_NEGATIVE': _unary_negative,
+    'UNARY_INVERT': _unary_invert,
     'BUILD_LIST': _build_list,
     'LIST_EXTEND': _list_extend,
     'BUILD_CONST_KEY_MAP': _build_const_key_map,
@@ -430,6 +458,8 @@ _inst_type = {
     'BINARY_FLOOR_DIVIDE': 'Reduction',
     'BINARY_MODULO': 'Reduction',
     'UNARY_NOT': 'Reduction',
+    'UNARY_NEGATIVE': 'Reduction',
+    'UNARY_INVERT': 'Reduction',
     'BUILD_LIST': '',
     'LIST_EXTEND': '',
     'BUILD_CONST_KEY_MAP': '',
@@ -833,6 +863,66 @@ _inst_type_313['TO_BOOL'] = ''
 def __paren(_expr):
     return _expr
 
+def __lit(_expr):
+    return _expr
+
+def _wrap_literals(_expr):
+    # CPython constant-folds pure-literal arithmetic sub-expressions at
+    # compile time (e.g. the "2 * 4" inside "3 + 2 * 4 + 9" collapses to a
+    # single LOAD_CONST 8 before _steps ever sees a BINARY_OP to trace --
+    # see the module docstring's "Constant folding hides steps" note).
+    # Wrapping a numeric literal in the opaque __lit(...) call makes that
+    # sub-expression unfoldable (the compiler cannot fold through an
+    # arbitrary call), while leaving every other opcode -- and operator
+    # precedence, which is baked into the *nesting* of the emitted BINARY_OP
+    # instructions regardless of whether operands are constants or names --
+    # completely unaffected. __lit always resolves to its wrapped value
+    # immediately wherever it is dispatched (see the _param_lit_call check
+    # in _steps below), so it never produces a step of its own -- same
+    # non-operation status LOAD_CONST already has.
+    #
+    # Scoped to literals that are immediate operands of a BinOp or a
+    # UnaryOp(USub|Invert) -- the arithmetic/bitwise reduction chain this
+    # module already knows how to step through -- found by walking the AST
+    # rather than by opcode inspection, since folding happens during
+    # compile(), after ast.parse() but before dis ever sees it. Deliberately
+    # NOT applied to list/dict/set/tuple elements, slice bounds, comparison/
+    # boolop operands, or plain call arguments: those compile through
+    # opcodes (LIST_EXTEND's single-constant-tuple optimization, BUILD_SLICE,
+    # the chained-comparison COPY/SWAP/POP_JUMP idiom, CALL) whose shape this
+    # wrapping would otherwise silently change, and some of those (the
+    # comparison/logic idiom in particular) are order/stack-shape sensitive
+    # in ways not worth risking for a fix scoped to arithmetic precedence.
+    # Also NOT applied to a literal that is a direct operand of unary "+"
+    # (UAdd): unlike -x/~x, +x compiles to CALL_INTRINSIC_1
+    # (INTRINSIC_UNARY_POSITIVE) on 3.12+ rather than a stable per-version
+    # opcode, confirmed empirically -- wrapping it would raise KeyError
+    # there instead of producing a step.
+    try:
+        _tree = ast.parse(_expr, mode='eval')
+    except SyntaxError:
+        return _expr
+
+    _spans = []
+
+    def _visit(_node, _in_arith):
+        if isinstance(_node, ast.Constant):
+            if _in_arith and type(_node.value) in (int, float, complex):
+                _spans.append((_node.col_offset, _node.end_col_offset))
+            return
+        if isinstance(_node, ast.UnaryOp) and isinstance(_node.op, ast.UAdd):
+            _child_in_arith = False
+        else:
+            _child_in_arith = isinstance(_node, (ast.BinOp, ast.UnaryOp))
+        for _child in ast.iter_child_nodes(_node):
+            _visit(_child, _child_in_arith)
+
+    _visit(_tree.body, isinstance(_tree.body, (ast.BinOp, ast.UnaryOp)))
+
+    for _start, _end in sorted(_spans, reverse=True):
+        _expr = _expr[:_start] + '__lit(' + _expr[_start:_end] + ')' + _expr[_end:]
+    return _expr
+
 _orig_values = {}
 _orig_attr_values = {}
 
@@ -937,6 +1027,12 @@ def _steps(_expr, _print_steps=False, _with_labels=False):
         _prefix = ''
     _expr = _expr[len(_prefix):]
 
+    # defeat compile-time constant folding of literal arithmetic (see
+    # _wrap_literals) so e.g. "3 + 2 * 4 + 9" traces through real BINARY_OP
+    # instructions -- in precedence order -- instead of disassembling
+    # straight to a single folded constant.
+    _expr = _wrap_literals(_expr)
+
     # disassembly
     _codeobj = dis.Bytecode(_expr).codeobj
     _instructions = list(dis.get_instructions(_codeobj))
@@ -1008,11 +1104,21 @@ def _steps(_expr, _print_steps=False, _with_labels=False):
             _param_fun_call = _instructions[_idx].opname == _era_call_opname and len(_stack) >= 2 and (
                 _stack[-2] == '__paren' or (len(_stack) >= 3 and _stack[-3] == '__paren')
             )
-            if _instructions[_idx].opname not in _era_non_oprations and not _param_fun_call:
+            # __lit (see _wrap_literals) is the same invisible-call trick as
+            # __paren, used to keep a literal from constant-folding away
+            # rather than to preserve a user paren -- so unlike __paren it
+            # should never get a step of its own: it always resolves to its
+            # wrapped value immediately, regardless of which operation index
+            # this pass is revealing up to (forced below via _evl).
+            _param_lit_call = _instructions[_idx].opname == _era_call_opname and len(_stack) >= 2 and (
+                _stack[-2] == '__lit' or (len(_stack) >= 3 and _stack[-3] == '__lit')
+            )
+            if _instructions[_idx].opname not in _era_non_oprations and not _param_fun_call and not _param_lit_call:
                 _nr_op += 1
                 if _nr_op == i:
                     _op_performed = _instructions[_idx].opname
-            _idx, _result = _era_inst_map[_instructions[_idx].opname](_stack, _instructions, _idx, _prefix, _nr_op <= i)
+            _evl = True if _param_lit_call else (_nr_op <= i)
+            _idx, _result = _era_inst_map[_instructions[_idx].opname](_stack, _instructions, _idx, _prefix, _evl)
             # print(_idx, _stack, _result)
 
             # print(i, _is_not_logic_expr)

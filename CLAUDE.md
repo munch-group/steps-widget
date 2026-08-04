@@ -39,7 +39,12 @@ The package is `steps_widget` under `src/`:
   surfaced as separate "Logic" steps to show short-circuiting). Pass
   `_with_labels=True` to get `(label, text)` pairs instead of bare strings --
   `label` is `"As written"` for the first entry, then whichever of
-  `"Substitution"`/`"Reduction"`/`"Logic"` produced that step.
+  `"Substitution"`/`"Reduction"`/`"Logic"` produced that step. Before
+  disassembly, `_wrap_literals()` AST-rewrites numeric literals in arithmetic
+  position into `__lit(...)` calls so operator-precedence chains like
+  `3 + 2 * 4 + 9` step through their real reduction order instead of
+  disassembling straight to a compiler-folded constant -- see "Constant
+  folding hides steps" under Gotchas.
 - `src/steps_widget/print_steps.py` -- `run_student_file()` (the `print-steps`
   entry point) takes a student `.py` file as `argv[1]`: first runs it unmodified
   to confirm it's error-free, then writes a shadow copy (`._<filename>`) with the
@@ -134,15 +139,18 @@ across CPython versions, so there are **three dispatch table pairs**
   3.12+ also peephole-collapses a plain `LOAD_CONST c; RETURN_VALUE` tail
   into one `RETURN_CONST` when the returned value is itself a literal --
   verified this only fires when the *entire* expression constant-folds to a
-  single value (e.g. `_steps("3 + 2 * 4 + 9")` disassembles to just
+  single value (e.g. a bare `_steps("42")` disassembles to just
   `RESUME`+`RETURN_CONST`, no `BINARY_OP` left to trace, previously an
   unhandled `KeyError`); an and/or/comparison jump target that returns a
   literal still emits a genuine `RETURN_VALUE` reading off the stack
   (confirmed empirically for `x and 5`), so `_return_const` never interacts
   with the `POP_JUMP_IF_FALSE`/`POP_JUMP_IF_TRUE` jump-target checks above --
-  it's the exact same "constant folding hides steps" case the Gotchas
-  section documents for pre-3.12 `LOAD_CONST`, just 3.12+'s opcode spelling
-  of it.
+  it's the exact same "constant folding hides steps" case the Gotchas section
+  documents, just 3.12+'s opcode spelling of it. `_wrap_literals` (see
+  Gotchas) means this now only actually fires for a *lone* literal with
+  nothing for it to wrap (a bare `_steps("42")`, or a non-numeric literal
+  like a string) -- `_steps("3 + 2 * 4 + 9")` no longer takes this path at
+  all on any version, `_return_const` is not dead code, just rarer.
 
 `_call` (used by all three of 3.11/3.12/3.13) resolves the plain-call vs.
 method-call shape by checking **both** of the two non-arg popped stack items
@@ -255,15 +263,68 @@ version tag pushes (`vX.Y[.Z][.rcN]`):
 
 ## Gotchas
 
-- **Constant folding hides steps.** CPython folds literal arithmetic like `1 + 2`
-  at compile time, so `_steps("1 + 2")` disassembles straight to `LOAD_CONST 3` --
-  there is no `BINARY_ADD` left to trace, and the result is just the one "As
-  written" entry, unchanged. Always demo/test with a variable (`x + 1`) or a
-  builtin call (`abs(-3) + 2`, never folded) to actually exercise a reduction step.
-- The final step of a traced **assignment** statement re-attaches the `lhs = `
-  prefix (e.g. `z = 39`), even though every intermediate substitution/reduction
-  step shows the bare right-hand-side value (`39`). Expected -- don't "fix" the
-  prefix-stripping regex in `_steps()` to strip it from the last step too.
+- **Constant folding hides steps -- fixed for arithmetic via `_wrap_literals`.**
+  CPython folds literal arithmetic like `1 + 2` at compile time, so disassembling
+  `"1 + 2"` directly would go straight to `LOAD_CONST 3` -- no `BINARY_ADD` left
+  to trace. `_steps()` now works around this: right after the assignment prefix
+  is stripped, `_wrap_literals()` walks the expression's AST and rewrites every
+  numeric literal (`int`/`float`/`complex`, not `bool`) that is an immediate
+  operand of a `BinOp` or a `UnaryOp(USub|Invert)` into an opaque `__lit(...)`
+  call (the same invisible-wrapper trick `__paren` already used for a different
+  purpose -- see below) before the first `dis.Bytecode()` call. A call result
+  can't be constant-folded, so the real `BINARY_OP`/`UNARY_*` instructions
+  survive -- in precedence order, since precedence was never actually the
+  problem: the compiler already bakes it into the *nesting* of the emitted
+  instructions regardless of whether operands are constants or names. So
+  `_steps("3 + 2 * 4 + 9")` now walks `"3 + 2 * 4 + 9"` -> `"3 + 8 + 9"` ->
+  `"11 + 9"` -> `"20"` instead of jumping straight to `"20"`. `__lit`-wrapped
+  literals never get a step of their own -- `_param_lit_call` (mirroring the
+  existing `_param_fun_call` check for `__paren`) excludes their `CALL` from
+  operation counting *and* forces `_evl=True` for it unconditionally, so a
+  literal always resolves to its wrapped value immediately regardless of which
+  operation index the current pass is revealing up to (unlike `__paren`, which
+  intentionally stays symbolic until genuinely reached).
+
+  Scope, and why: only `BinOp`/`UnaryOp(USub|Invert)` operands are wrapped --
+  not list/dict/set/tuple elements, slice bounds, comparison/boolop operands, or
+  plain call arguments. Those compile through opcodes (`LIST_EXTEND`'s
+  single-constant-tuple optimization, `BUILD_SLICE`, the chained-comparison
+  `COPY`/`SWAP`/`POP_JUMP` idiom, `CALL`) whose bytecode *shape* wrapping would
+  silently change -- e.g. a constant-only list display normally folds its
+  elements into one tuple constant fed to `LIST_EXTEND`; wrapped elements would
+  produce a per-element `LOAD`/`CALL` shape `_list_extend` doesn't expect.
+  `UnaryOp(UAdd)` (`+3`) is also deliberately excluded: unlike `-x`/`~x`, unary
+  positive compiles to `CALL_INTRINSIC_1` (`INTRINSIC_UNARY_POSITIVE`) on 3.12+
+  rather than a stable per-version opcode (confirmed empirically) -- wrapping it
+  would raise `KeyError` there instead of producing a step. String literals
+  aren't wrapped either (out of scope for this fix; `"a" + "b"` still folds).
+  Wrapping a `-x`/`~x` literal operand also newly exposes genuine
+  `UNARY_NEGATIVE`/`UNARY_INVERT` instructions that constant folding always
+  hid before (e.g. `-3` alone still disassembles straight to `LOAD_CONST -3`,
+  no unary opcode at all) -- both got dispatch handlers added to the base
+  `_inst_map`/`_inst_type` table, inherited by all three era tables via the
+  `dict(...)` copy chain since their opcode names don't change across
+  3.9-3.13, unlike the `BINARY_*` family `BINARY_OP` superseded on 3.11+.
+- The `lhs = ` prefix on a traced **assignment** statement's steps is reattached
+  by whichever dispatch handler happens to produce that particular step's text
+  -- it is not simply "final step only." `_return_value`/`_return_const` (the
+  handlers that actually return the expression's value) reattach it every
+  single time they fire, and for a plain substitution/reduction chain that's
+  *every* step, since each iteration's walk independently re-terminates at
+  `RETURN_VALUE`/`RETURN_CONST` (confirmed empirically, e.g. `_steps("z = x +
+  1")` with `x = 7` gives `["z = x + 1", "z = 7 + 1", "z = 8"]` -- the prefix
+  on the middle step too, not just the last). The prefix is genuinely *absent*
+  only from steps produced by the and/or/chained-comparison jump handlers
+  (`_jump_if_false_or_pop`, `_jump_if_true_or_pop`, `_pop_jump_if_false[_312]`,
+  `_pop_jump_if_true_312`), which never thread `_prefix` through at all -- so a
+  short-circuiting `Logic` step, or an intermediate chained-comparison
+  `Reduction` step riding on one of those same jump opcodes, shows the bare
+  sub-expression value inside a traced assignment, and the prefix reappears on
+  whichever later step next comes from `_return_value`/`_return_const` (e.g.
+  `_steps("z = a < b < c")` with `a,b,c = 1,2,3` includes a bare `"True"`
+  reduction step for the `1 < 2` sub-comparison, then `"z = True"` once back at
+  `RETURN_VALUE`). Don't "fix" the prefix-stripping regex in `_steps()` over
+  this -- it's inherent to which handler produced a given step, not a bug.
 
 ## Testing approach
 
