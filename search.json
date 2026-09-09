@@ -33,6 +33,39 @@
     ]
   },
   {
+    "objectID": "api/register_steps_magic.html",
+    "href": "api/register_steps_magic.html",
+    "title": "register_steps_magic",
+    "section": "",
+    "text": "register_steps_magic\nsteps_widget.widget.register_steps_magic(ipython=None)\nRegister the %%steps cell magic.\nIn IPython/Jupyter, prefixing a cell with %%steps traces every # PRINT STEPS-tagged statement in it and renders the result as a StepsWidget below the cell – the cell itself still runs normally::\n%%steps\nx = 7\ny = 5\nz = x * y + 4 # PRINT STEPS\nCalled automatically on import; returns True when a live shell is found, False otherwise (e.g. plain Python).",
+    "crumbs": [
+      "Widget",
+      "register_steps_magic"
+    ]
+  },
+  {
+    "objectID": "api/StepsWidget.html",
+    "href": "api/StepsWidget.html",
+    "title": "StepsWidget",
+    "section": "",
+    "text": "steps_widget.widget.StepsWidget(code, namespace=None)\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements in code, one panel per tagged line.\n\n\n\ncode : str\n\nSource to trace. Statements followed by a # PRINT STEPS-style comment (see steps_widget.print_steps) are evaluated step by step; everything else runs normally.\n\nnamespace : dict = None\n\nNamespace to execute code in. Defaults to the live notebook’s namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).",
+    "crumbs": [
+      "Widget",
+      "StepsWidget"
+    ]
+  },
+  {
+    "objectID": "api/StepsWidget.html#parameters",
+    "href": "api/StepsWidget.html#parameters",
+    "title": "StepsWidget",
+    "section": "",
+    "text": "code : str\n\nSource to trace. Statements followed by a # PRINT STEPS-style comment (see steps_widget.print_steps) are evaluated step by step; everything else runs normally.\n\nnamespace : dict = None\n\nNamespace to execute code in. Defaults to the live notebook’s namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).",
+    "crumbs": [
+      "Widget",
+      "StepsWidget"
+    ]
+  },
+  {
     "objectID": "api/index.html",
     "href": "api/index.html",
     "title": "Function reference",
@@ -63,17 +96,6 @@
     ]
   },
   {
-    "objectID": "api/register_steps_magic.html",
-    "href": "api/register_steps_magic.html",
-    "title": "register_steps_magic",
-    "section": "",
-    "text": "register_steps_magic\nsteps_widget.widget.register_steps_magic(ipython=None)\nRegister the %%steps cell magic.\nIn IPython/Jupyter, prefixing a cell with %%steps traces every # PRINT STEPS-tagged statement in it and renders the result as a StepsWidget below the cell – the cell itself still runs normally::\n%%steps\nx = 7\ny = 5\nz = x * y + 4 # PRINT STEPS\nCalled automatically on import; returns True when a live shell is found, False otherwise (e.g. plain Python).",
-    "crumbs": [
-      "Widget",
-      "register_steps_magic"
-    ]
-  },
-  {
     "objectID": "api/run_student_file.html",
     "href": "api/run_student_file.html",
     "title": "run_student_file",
@@ -82,28 +104,6 @@
     "crumbs": [
       "Command line",
       "run_student_file"
-    ]
-  },
-  {
-    "objectID": "api/StepsWidget.html",
-    "href": "api/StepsWidget.html",
-    "title": "StepsWidget",
-    "section": "",
-    "text": "steps_widget.widget.StepsWidget(code, namespace=None)\nDisplays the substitution/reduction trace of # PRINT STEPS-tagged statements in code, one panel per tagged line.\n\n\n\ncode : str\n\nSource to trace. Statements followed by a # PRINT STEPS-style comment (see steps_widget.print_steps) are evaluated step by step; everything else runs normally.\n\nnamespace : dict = None\n\nNamespace to execute code in. Defaults to the live notebook’s namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).",
-    "crumbs": [
-      "Widget",
-      "StepsWidget"
-    ]
-  },
-  {
-    "objectID": "api/StepsWidget.html#parameters",
-    "href": "api/StepsWidget.html#parameters",
-    "title": "StepsWidget",
-    "section": "",
-    "text": "code : str\n\nSource to trace. Statements followed by a # PRINT STEPS-style comment (see steps_widget.print_steps) are evaluated step by step; everything else runs normally.\n\nnamespace : dict = None\n\nNamespace to execute code in. Defaults to the live notebook’s namespace when called from a running kernel, or a fresh dict otherwise (e.g. for headless use in tests).",
-    "crumbs": [
-      "Widget",
-      "StepsWidget"
     ]
   },
   {
