@@ -275,16 +275,30 @@ class StepsWidget(anywidget.AnyWidget):
     sections = traitlets.List().tag(sync=True)
 
     def __init__(self, code, namespace=None):
-        super().__init__()
+        # Run the trace *before* super().__init__() and pass `sections` in as a
+        # constructor kwarg, so it is part of the state the widget's `comm_open`
+        # carries. Assigning `self.sections` after super().__init__() instead would
+        # leave `comm_open` advertising the empty default and push the real trace as
+        # a separate follow-up `update` comm message -- which the frontend drops on
+        # the first anywidget of a browser session, while it is still asynchronously
+        # loading the anywidget package and this widget's `_esm`: the comm's message
+        # handler is not attached until that load resolves. The view then renders the
+        # "no tagged lines found" placeholder off the empty default and never
+        # recovers, since no `change:sections` event follows. That made the first
+        # %%steps cell in a freshly opened notebook come up empty while every later
+        # run -- and every run after a kernel restart, which does not clear the
+        # browser's module cache -- worked.
         trace = _run_traced(code, namespace)
-        self.sections = [
-            {
-                "line": lineno,
-                "code": expr,
-                "steps": [{"label": label, "text": text} for label, text in labeled_steps],
-            }
-            for lineno, expr, labeled_steps in trace
-        ]
+        super().__init__(
+            sections=[
+                {
+                    "line": lineno,
+                    "code": expr,
+                    "steps": [{"label": label, "text": text} for label, text in labeled_steps],
+                }
+                for lineno, expr, labeled_steps in trace
+            ]
+        )
 
 
 def register_steps_magic(ipython=None):

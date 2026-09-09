@@ -43,3 +43,33 @@ def test_steps_widget_no_tagged_lines_yields_no_sections():
 
 def test_register_steps_magic_without_a_live_shell_returns_false():
     assert register_steps_magic(ipython=None) is False
+
+
+def test_sections_are_populated_before_the_comm_opens(monkeypatch):
+    """The trace must be part of the widget's *initial* state, not pushed afterwards.
+
+    ``Widget.__init__`` applies constructor kwargs to the traits and only then calls
+    ``open()``, which publishes ``comm_open`` carrying ``get_state()``. If ``sections``
+    were instead assigned after ``super().__init__()``, ``comm_open`` would advertise
+    the empty default and the real trace would follow as a separate ``update`` comm
+    message -- which the frontend drops while it is still asynchronously loading the
+    anywidget package and this widget's ``_esm`` (the first anywidget of a browser
+    session), leaving the view stuck on the "no tagged lines found" placeholder with
+    no ``change:sections`` event to recover from. Assert the state is already complete
+    at ``open()`` time so that regression cannot return silently.
+    """
+    captured = {}
+    original_open = StepsWidget.open
+
+    def spy_open(self):
+        captured["sections"] = self.get_state().get("sections")
+        return original_open(self)
+
+    monkeypatch.setattr(StepsWidget, "open", spy_open)
+
+    code = "x = 7\nz = x * 2  # PRINT STEPS\n"
+    w = StepsWidget(code, namespace={})
+
+    assert captured["sections"] == w.sections
+    assert len(captured["sections"]) == 1
+    assert captured["sections"][0]["steps"][-1]["text"] == "z = 14"

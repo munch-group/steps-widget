@@ -325,6 +325,55 @@ version tag pushes (`vX.Y[.Z][.rcN]`):
   reduction step for the `1 < 2` sub-comparison, then `"z = True"` once back at
   `RETURN_VALUE`). Don't "fix" the prefix-stripping regex in `_steps()` over
   this -- it's inherent to which handler produced a given step, not a bug.
+- **Widget state must ship in `comm_open`, not a follow-up `update`.**
+  `StepsWidget.__init__` computes the trace *before* `super().__init__()` and passes
+  it in as a `sections=` constructor kwarg. This is load-bearing, not style:
+  `ipywidgets.Widget.__init__` applies kwargs to the traits and only then calls
+  `open()`, which publishes `comm_open` carrying `get_state()`. Assigning
+  `self.sections` after `super().__init__()` instead (as the code originally did)
+  leaves `comm_open` advertising the empty default and pushes the real trace as a
+  separate `update` comm message -- which the frontend drops for the *first*
+  anywidget of a browser session, while it is still asynchronously loading the
+  anywidget package and this widget's `_esm`: the comm's message handler is not
+  attached until that load resolves. The view then renders the "No '# PRINT
+  STEPS'-tagged lines found" placeholder off the empty default and never recovers,
+  because no `change:sections` event follows for `render()`'s listener to catch.
+  Symptom was version-independent and Python-side-invisible: the first `%%steps`
+  cell in a freshly opened notebook came up empty, every later run in that browser
+  session worked, and a kernel restart also "fixed" it (a restart does not clear
+  the browser's module cache). Confirmed by driving a real kernel over
+  `jupyter_client` and reading the iopub comm traffic -- the trace itself was
+  byte-identical on runs 1/2/3, only the message it rode in on differed.
+  `test_sections_are_populated_before_the_comm_opens` pins this by spying on
+  `open()` and asserting `get_state()["sections"]` is already complete there.
+  Any future synced traitlet holding cell output belongs in the same initial
+  state for the same reason.
+- **The VS Code "Widget load failure ... @jupyter-widgets/base" log line is
+  cosmetic -- do not "fix" it by emptying `jupyter.widgetScriptSources`.**
+  VS Code's Jupyter extension tries its widget script-source providers in order --
+  CDN first, then local -- and stops at the first that returns a script
+  (`ipyWidgetScriptSourceProvider.ts`), so with the default-off CDN list turned on
+  it fetches `@jupyter-widgets/base` and `anywidget` from jsdelivr/unpkg even
+  though both are installed in the env. A failed fetch logs `Widget load failure`
+  to the Jupyter output channel, but `@jupyter-widgets/base` only supplies the
+  `layout` sub-widget (styling), and since the `comm_open` fix above the trace
+  arrives in the widget's initial state -- so the steps still render regardless of
+  whether, or how slowly, that fetch resolves. Setting `widgetScriptSources` to
+  `[]` *would* make the CDN provider return with no network request at all
+  (`cdnWidgetScriptSourceProvider.ts`) and fall through to the local provider,
+  which reads `<sysPrefix>/share/jupyter/nbextensions/*/extension.js` and pulls
+  module names out of each one's `require.config` map; both modules this package
+  needs do resolve that way in a pixi env (`@jupyter-widgets/base` ->
+  `jupyter-js-widgets/extension.js` from widgetsnbextension, `anywidget` ->
+  `anywidget/index.js`). It was still rejected: the setting applies to *every*
+  widget in scope, the local provider reads only `nbextensions`, and widget
+  libraries that ship a labextension and no nbextension would lose their only
+  fallback -- a repo-wide constraint on unrelated widgets in exchange for
+  suppressing a log line that costs nothing. Fix the network path instead if it
+  ever becomes a real failure. (If anyone does emulate the local lookup: anywidget's
+  entry point writes `window.requirejs?.config({`, and the extension's
+  `REQUIRE_PATTERNS` covers that optional-chaining spelling -- searching only for
+  plain `requirejs.config` wrongly reports anywidget as unresolvable.)
 
 ## Testing approach
 
