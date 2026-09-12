@@ -4,14 +4,16 @@
 Jupyter widget and CLI that trace Python expression evaluation step by step.
 
 - `%%steps` -- a cell magic (registered by `import steps_widget`) that renders the
-  substitution/reduction trace of any `# PRINT STEPS`-tagged statement as a widget
+  substitution/reduction trace of any `# steps`-tagged statement as a widget
   below the cell.
 - `print-steps` -- the command-line equivalent: `print-steps student_script.py`
   prints the same trace to stderr for every tagged line in a script.
 
-Tag convention: append `# PRINT STEPS` (or `#PRINT-STEPS`, `# printsteps`, ... --
-see `steps_widget.print_steps._COMMENT_TAGS` for every recognized spelling) to a
-statement to have it evaluated one operation at a time instead of all at once.
+Tag convention: append `# steps` (or `# PRINT STEPS`, `#PRINT-STEPS`,
+`# printsteps`, ...) to a statement to have it evaluated one operation at a time
+instead of all at once. The tag is case-insensitive and the whitespace in it is
+free -- `#steps`, `# STEPS` and `#    pRint    steps` all work; see
+`steps_widget.print_steps._TAG_RE` for the exact pattern.
 
 ```python
 import steps_widget
@@ -19,7 +21,7 @@ import steps_widget
 %%steps
 x = 7
 y = 5
-z = x * y + 4  # PRINT STEPS
+z = x * y + 4  # steps
 ```
 
 Requires **Python 3.10 through 3.13** -- the stepper dispatches on CPython

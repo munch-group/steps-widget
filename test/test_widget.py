@@ -25,6 +25,16 @@ def test_steps_widget_traces_tagged_statement():
     assert section["steps"][-1]["text"] == "z = 39"
 
 
+def test_steps_widget_traces_the_short_steps_tag():
+    """The widget shares print_steps.py's tag matcher, so the short `# steps`
+    spelling works in a cell exactly as `# PRINT STEPS` does."""
+    w = StepsWidget("x = 7\ny = 5\nz = x * y + 4  #  StEpS\n", namespace={})
+
+    assert len(w.sections) == 1
+    assert w.sections[0]["code"] == "z = x * y + 4"
+    assert w.sections[0]["steps"][-1]["text"] == "z = 39"
+
+
 def test_steps_widget_multiple_tagged_lines_and_persistence():
     code = "x = 7\ny = 5\nz = x * y + 4  # PRINT STEPS\nk = z * 42  # PRINT STEPS\n"
     ns = {}

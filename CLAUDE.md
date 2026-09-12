@@ -50,12 +50,13 @@ The package is `steps_widget` under `src/`:
   to confirm it's error-free, then writes a shadow copy (`._<filename>`) with the
   entirety of `steps.py`'s source `exec()`'d (escaped onto one line via
   `_STEPS_EXEC_ONELINER`, so the shadow file's line numbers stay in sync with the
-  original) at the top, and every line containing a `# PRINT STEPS`-style comment
+  original) at the top, and every line containing a `# steps`-style comment
   rewritten to call `_steps(expr, _print_steps=True)` before executing that line,
   printing each step to stderr. Runs the shadow file as a subprocess (via
   `sys.executable`, not a hardcoded `python` + `shell=True`, so it also works on
-  Windows), then deletes it. The tag convention itself -- the recognized comment
-  spellings (`_COMMENT_TAGS`) and the per-line detection (`_find_tagged_statement`,
+  Windows), then deletes it. The tag convention itself -- the pattern recognizing
+  the comment spellings (`_TAG_RE`, with `_EXAMPLE_TAGS` as a non-exhaustive sample
+  for docs/tests) and the per-line detection (`_find_tagged_statement`,
   returning the indent and bare statement preceding the tag) -- lives here so
   `widget.py` can reuse the exact same tagging logic rather than re-implementing it.
 - `src/steps_widget/widget.py` -- the `%%steps` cell magic and `StepsWidget`
@@ -218,13 +219,34 @@ introduced by the multi-era port, not fixed by it either):
   today on every supported version -- never implemented (abandoned partial
   attempts exist commented-out in `steps.py`), not a version-compatibility gap.
 
-## The `# PRINT STEPS` tag convention
+## The `# steps` tag convention
 
-Any of these spellings, trailing a statement, marks it for step tracing (see
-`_COMMENT_TAGS` in `print_steps.py`): `# PRINT STEPS`, `#PRINT STEPS`,
-`# PRINTSTEPS`, `#PRINTSTEPS`, `# PRINT-STEPS`, `#PRINT-STEPS`, and the lowercase
-equivalents. A tag inside a comment-only line (nothing but `#...` before the tag)
-is ignored, not traced.
+A trailing comment of the form `#` + optional `print` + `steps` marks a statement
+for step tracing. It is matched by a single regex, `_TAG_RE` in `print_steps.py`
+(`#\s*(?:print\s*-?\s*)?steps\b`, `re.IGNORECASE`) -- **not** a list of literal
+spellings, since the whitespace runs make the set of accepted spellings infinite.
+So `# steps`, `#steps`, `#   STEPS`, `# PRINT STEPS`, `#printsteps`,
+`#PRINT-STEPS`, `# print - steps` and `#    pRint    steps` are all the same tag.
+`_EXAMPLE_TAGS` in the same module is a hand-written sample of accepted spellings
+kept only for documentation and for `test_print_steps.py` to parametrize over
+(a narrowing of `_TAG_RE` fails that test); it is deliberately not the source of
+truth, so never match against it.
+
+Two boundary rules:
+
+- The trailing `\b` means a comment whose first word merely *starts* with the tag
+  is not a tag -- `# stepsize is 2`, `# steppes`, `# printstepsize` all run
+  untraced. This matters much more than it did for the old `# PRINT STEPS`-only
+  convention: `steps` alone is an ordinary English word likely to open a real
+  comment, and without the boundary `# stepsize` would have silently started
+  tracing. Text *after* a complete tag is still allowed (as it always was), so
+  `# steps of the loop` **does** trace -- matching is a `search`, not a
+  full-line match, and tightening that would change long-standing behavior for
+  the `print steps` spellings too.
+- A tag inside a comment-only line (nothing but `#...` before the tag) is
+  ignored, not traced. `_find_tagged_statement` takes the *leftmost* match
+  (`_TAG_RE.search`) rather than the first spelling in a list, so
+  `# a comment mentioning # steps` is correctly read as comment-only.
 
 ## Environment & commands
 

@@ -9,25 +9,38 @@ import sys
 
 from . import steps as _steps_module
 
-# recognized spellings of the tag that marks a statement for step tracing
-_COMMENT_TAGS = [
+# The tag that marks a statement for step tracing: a '#' followed by 'steps',
+# optionally preceded by 'print'. Case-insensitive, and any amount of whitespace --
+# or none -- is allowed between '#', 'print' and 'steps' (the two words may also be
+# joined by a hyphen), so '#steps', '# STEPS', '# PRINT STEPS', '#print-steps' and
+# '#    pRint    steps' are all the same tag. The trailing \b keeps a word that
+# merely starts with the tag (e.g. '# stepsize') from triggering a trace.
+_TAG_RE = re.compile(r'#\s*(?:print\s*-?\s*)?steps\b', re.IGNORECASE)
+
+# A sample of recognized spellings, for documentation and for the test suite to pin.
+# `_TAG_RE` -- not this list -- is what `_find_tagged_statement` matches against, and
+# it recognizes infinitely many spellings (any whitespace run), so this is examples
+# only, never an exhaustive enumeration.
+_EXAMPLE_TAGS = [
+    '# STEPS', '#STEPS', '# steps', '#steps', '#   Steps',
     '# PRINT STEPS', '#PRINT STEPS', '# PRINTSTEPS', '#PRINTSTEPS', '# PRINT-STEPS', '#PRINT-STEPS',
     '# print steps', '#print steps', '# printsteps', '#printsteps', '# print-steps', '#print-steps',
+    '#    pRint    steps', '# print - steps',
     ]
 
 
 def _find_tagged_statement(line):
-    """If `line` carries a `# PRINT STEPS`-style tag, return `(indent, statement)` for the
-    code preceding the tag. Returns None if there is no tag, or the tag sits inside a
-    comment (no code precedes it on the line)."""
-    for comment in _COMMENT_TAGS:
-        if comment in line:
-            code = line[:line.index(comment)]
-            indent = ' ' * (len(code) - len(code.lstrip()))
-            statement = code.strip()
-            if statement and not statement.startswith('#'):
-                return indent, statement
-            return None
+    """If `line` carries a `# steps`/`# PRINT STEPS`-style tag (see `_TAG_RE`), return
+    `(indent, statement)` for the code preceding the tag. Returns None if there is no
+    tag, or the tag sits inside a comment (no code precedes it on the line)."""
+    match = _TAG_RE.search(line)
+    if not match:
+        return None
+    code = line[:match.start()]
+    indent = ' ' * (len(code) - len(code.lstrip()))
+    statement = code.strip()
+    if statement and not statement.startswith('#'):
+        return indent, statement
     return None
 
 

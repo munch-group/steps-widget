@@ -4,9 +4,9 @@ steps_widget.widget
 
 A Jupyter widget rendering of the same substitution/reduction trace that the
 `print-steps` command-line tool prints to the terminal: tag any statement in a cell
-with a trailing ``# PRINT STEPS`` comment (any of the spellings recognized by
-`steps_widget.print_steps`) and see it evaluated one operation at a time, as a widget
-below the cell.
+with a trailing ``# steps`` comment (or ``# PRINT STEPS``, or any of the other
+spellings recognized by `steps_widget.print_steps._TAG_RE`) and see it evaluated one
+operation at a time, as a widget below the cell.
 
 * Built on `anywidget` (the standard ipywidgets comm protocol + plain ESM), so it
   behaves the same across VS Code notebooks, JupyterLab, Notebook 7 and Colab.
@@ -144,7 +144,7 @@ function render({ model, el }){
   /**
    * (Re)build the full section list into `el` from the current `sections`
    * traitlet, replacing any previous content. Shows a placeholder message
-   * when no `# PRINT STEPS`-tagged lines were traced.
+   * when no `# steps`-tagged lines were traced.
    */
   function draw(){
     el.innerHTML = "";
@@ -154,8 +154,8 @@ function render({ model, el }){
     if (!sections.length){
       const empty = document.createElement("div");
       empty.className = "sw-empty";
-      empty.textContent = "No '# PRINT STEPS'-tagged lines found. Add a trailing " +
-        "'# PRINT STEPS' comment to a statement to trace it.";
+      empty.textContent = "No '# steps'-tagged lines found. Add a trailing " +
+        "'# steps' comment to a statement to trace it.";
       root.appendChild(empty);
     } else {
       sections.forEach((section) => root.appendChild(buildSection(section)));
@@ -206,11 +206,11 @@ _CSS = r"""
 
 
 # --------------------------------------------------------------------------- #
-# Tracing -- instrument '# PRINT STEPS' tagged lines, run through _steps().   #
+# Tracing -- instrument '# steps' tagged lines, run through _steps().         #
 # --------------------------------------------------------------------------- #
 
 def _instrument_cell(code):
-    """Rewrite `code` so every `# PRINT STEPS`-tagged statement appends its labeled
+    """Rewrite `code` so every `# steps`-tagged statement appends its labeled
     step trace to `_TRACE_VAR` before running, mirroring how print_steps.py's shadow
     file instruments a student script -- same tag convention, same one-line-per*
     statement injection so line numbers in the original cell are preserved."""
@@ -254,13 +254,13 @@ def _run_traced(code, namespace=None):
 # --------------------------------------------------------------------------- #
 
 class StepsWidget(anywidget.AnyWidget):
-    """Displays the substitution/reduction trace of `# PRINT STEPS`-tagged
+    """Displays the substitution/reduction trace of `# steps`-tagged
     statements in `code`, one panel per tagged line.
 
     Parameters
     ----------
     code : str
-        Source to trace. Statements followed by a `# PRINT STEPS`-style comment
+        Source to trace. Statements followed by a `# steps`-style comment
         (see `steps_widget.print_steps`) are evaluated step by step; everything else
         runs normally.
     namespace : dict, optional
@@ -305,7 +305,7 @@ def register_steps_magic(ipython=None):
     r"""Register the `%%steps` cell magic.
 
     In IPython/Jupyter, prefixing a cell with `%%steps` traces every
-    `# PRINT STEPS`-tagged statement in it and renders the result as a
+    `# steps`-tagged statement in it and renders the result as a
     `StepsWidget` below the cell -- the cell itself still runs normally::
 
         %%steps
