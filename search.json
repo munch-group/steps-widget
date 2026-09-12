@@ -15,7 +15,7 @@
     "href": "pages/example.html#method-calls-and-indexing",
     "title": "Examples",
     "section": "Method calls and indexing",
-    "text": "Method calls and indexing\n\n%%steps\ns = 'Hej {}'\nl = [1, 2, 3]\ngreeting = s.format('Kasper').upper()[0:3]  # PRINT STEPS\ntotal = l[0] + l[1] + l[2]  # PRINT STEPS",
+    "text": "Method calls and indexing\nAdd # steps or # print steps (case insensitive) as trailing comment to show the steps for a line:\n\n%%steps\ns = 'Hej {}'\nl = [1, 2, 3]\ngreeting = s.format('Kasper').upper()[0:3]  # PRINT STEPS\ntotal = l[0] + l[1] + l[2]  # steps",
     "crumbs": [
       "Examples",
       "Examples"
