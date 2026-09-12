@@ -236,7 +236,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="method-calls-and-indexing" class="level2">
 <h2 class="anchored" data-anchor-id="method-calls-and-indexing">Method calls and indexing</h2>
-<div id="4e765bc5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-18T09:48:55.795935Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-18T09:48:55.795830Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-18T09:48:55.809513Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-18T09:48:55.809022Z&quot;}}" data-execution_count="2">
+<div id="4e765bc5" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-18T09:48:55.795935Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-18T09:48:55.795830Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-18T09:48:55.809513Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-18T09:48:55.809022Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>steps</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="st">'Hej </span><span class="sc">{}</span><span class="st">'</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>l <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
@@ -244,7 +244,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> l[<span class="dv">0</span>] <span class="op">+</span> l[<span class="dv">1</span>] <span class="op">+</span> l[<span class="dv">2</span>]  <span class="co"># PRINT STEPS</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id":"62b8dddc47ea46a0a154503d17dbdf58","version_major":2,"version_minor":1,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+{"model_id":"b3d0e0b10ee147d7afdbd7b788637c6c","version_major":2,"version_minor":1,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
 </script>
 </div>
 </div>
@@ -252,14 +252,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="short-circuit-and-or" class="level2">
 <h2 class="anchored" data-anchor-id="short-circuit-and-or">Short-circuit <code>and</code> / <code>or</code></h2>
 <p>Each <code>Logic</code> step shows which side of <code>and</code>/<code>or</code> Python actually needed to look at.</p>
-<div id="63ab6b9e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-18T09:48:55.811070Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-18T09:48:55.810964Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-18T09:48:55.821512Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-18T09:48:55.821086Z&quot;}}" data-execution_count="3">
+<div id="63ab6b9e" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-18T09:48:55.811070Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-18T09:48:55.810964Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-18T09:48:55.821512Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-18T09:48:55.821086Z&quot;}}">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>steps</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> <span class="dv">3</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> x <span class="kw">and</span> y <span class="kw">or</span> <span class="dv">7</span>  <span class="co"># PRINT STEPS</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id":"a71d80d09c9843efa0d8b7919433dcc9","version_major":2,"version_minor":1,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+{"model_id":"2629494ee3284fe79a23ef7801fa596e","version_major":2,"version_minor":1,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
 </script>
 </div>
 </div>
